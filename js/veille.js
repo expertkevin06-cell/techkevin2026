@@ -4,13 +4,11 @@ const Veille = (() => {
   const K_LAST="tk_veille_last_v1",K_VER="tk_veille_ver_v1",K_CAND="tk_veille_cand_v1",K_MODELS="tk_models_extra_v1",K_DONE="tk_veille_done_v1",K_CATVER="tk_catalog_ver_v1";
   const read=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d;}catch(e){return d;}};
   const write=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
-  const PHRASES=[["high voltage battery","batterie haute tension"],["fuel pump","pompe à carburant"],["seat belts","ceintures de sécurité"],["seat belt","ceinture de sécurité"],["service brakes","freinage de service"],["parking brake","frein de stationnement"],["power train","groupe motopropulseur"],["wiring harness","faisceau électrique"],["electrical system","système électrique"],["update the software","mettre à jour le logiciel"],["loss of motive power","perte de propulsion"],["risk of fire","risque d'incendie"],["may cause","peut provoquer"],["can cause","peut provoquer"],["air bag","airbag"],["windshield","pare-brise"],["coolant","liquide de refroidissement"],["short circuit","court-circuit"],["overheating","surchauffe"],["stalling","calage"],["dealer","concession"],["transmission","boîte de vitesses"],["suspension","suspension"],["steering","direction"],["engine","moteur"],["battery","batterie"],["brakes","freins"],["tires","pneumatiques"],["tire","pneumatique"],["wheels","roues"],["wheel","roue"],["camera","caméra"],["sensor","capteur"],["module","module"],["inverter","onduleur"],["charger","chargeur"],["charging","charge"],["software","logiciel"],["leak","fuite"],["corrosion","corrosion"],["fracture","rupture"],["crash","collision"],["injury","blessure"],["fire","incendie"],["replace","remplacer"],["inspect","contrôler"],["remedy","solution"],["consequence","conséquence"],["component","composant"],["summary","résumé"],["visibility","visibilité"],["latches","verrous"]];
-  function translateFr(s){ if(!s) return s; let t=String(s); PHRASES.forEach(p=>{ t=t.replace(new RegExp(p[0].replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"gi"),p[1]); }); return t; }
-  function tradItem(it){ if(!it) return it; ["comp","prob","risk","fix"].forEach(f=>{ if(typeof it[f]==="string") it[f]=translateFr(it[f]); }); if(Array.isArray(it.sym)) it.sym=it.sym.map(translateFr); it.trad=true; return it; }
+  const tradItem=it=>{ if(!it) return it; const c=frObj(it,["comp","prob","risk","fix","sym","title"]); c.trad=true; return c; };
   function due(){ return Date.now()-read(K_LAST,0)>=MS; }
   function daysLeft(){ return Math.max(0,Math.ceil((MS-(Date.now()-read(K_LAST,0)))/86400000)); }
   async function fetchJSON(u){ const r=await fetch(u+(u.includes("?")?"&":"?")+"t="+Date.now(),{cache:"no-store"}); if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); }
-  function candidates(){ return read(K_CAND,[]); }
+  function candidates(){ return read(K_CAND,[]).map(tradItem); }
   function saveCandidates(l){ write(K_CAND,l); }
   function modelsExtra(){ return read(K_MODELS,[]); }
   function saveModelsExtra(l){ write(K_MODELS,l); }
@@ -26,7 +24,7 @@ const Veille = (() => {
     else if(c.type==="fault"){ const key=c.code; if(key&&!Store.customs().some(x=>x.key===key)) Store.addCustom({key,code:c.code,brand:c.brand||"",title:c.title||c.comp||"Panne",desc:c.prob||"",sev:c.sev||2,sevLabel:["Mineure","Modérée","Sérieuse","Critique"][(c.sev||2)-1],symptoms:c.sym||[],causes:c.causes||[],solutions:c.fix?[c.fix]:[],brands:c.brand?[c.brand]:["Toutes marques"],motors:c.eng||["Essence"],years:YR}); }
     else if(c.type==="model"||c.type==="engine"){ const l=modelsExtra(); if(!l.some(m=>m.brand===c.brand&&m.model===c.model)) l.push({brand:c.brand,model:c.model,y0:c.y0||2025,engines:c.engines||[]}); saveModelsExtra(l); mergeModels(); }
   }
-  function mergeCandidates(items){ const cur=candidates(); const done=new Set(read(K_DONE,[])); let added=0;
+  function mergeCandidates(items){ const cur=read(K_CAND,[]); const done=new Set(read(K_DONE,[])); let added=0;
     (items||[]).forEach(it=>{ it=tradItem(it); if(!it||!it.id||done.has(it.id)||cur.some(c=>c.id===it.id)) return; cur.unshift(it); applyItem(it); added++; });
     saveCandidates(cur.slice(0,400)); return added; }
   async function check(force){ const now=Date.now();
@@ -46,8 +44,8 @@ const Veille = (() => {
     write(K_CATVER,pack.version); write("tk_catalog_pack_v1",pack);
     const added=mergeCatalog(pack.items||[]); Store.audit("CATALOGUE_IMPORT","v"+pack.version+" +"+added);
     return {ok:true,version:pack.version,count:added}; }
-  function approve(ids){ const cur=candidates(); const done=read(K_DONE,[]);
-    const sel=cur.filter(c=>ids.includes(c.id)); sel.forEach(c=>{ applyItem(c); done.push(c.id); });
+  function approve(ids){ const cur=read(K_CAND,[]); const done=read(K_DONE,[]);
+    const sel=cur.filter(c=>ids.includes(c.id)); sel.forEach(c=>{ applyItem(tradItem(c)); done.push(c.id); });
     write(K_DONE,done); saveCandidates(cur.filter(c=>!ids.includes(c.id))); mergeModels();
     Store.audit("VEILLE_APPROUVEE",sel.length+" élément(s)"); return sel.length; }
   async function nhtsa(make,model,year){ const url="https://api.nhtsa.gov/recalls/recallsByVehicle?make="+encodeURIComponent(make)+"&model="+encodeURIComponent(model)+"&modelYear="+year;
@@ -60,5 +58,6 @@ const Veille = (() => {
     const c=await fetchCatalog(true).catch(e=>({ok:false,reason:e.message,count:0})); mergeModels();
     const u=await Updater.checkAndApply().catch(e=>({ok:false,reason:e.message}));
     Store.audit("RELANCE_MANUELLE","veille+"+(a.count||0)+" catalogue+"+(c.count||0)); return {a,c,u}; }
-  return { PERIOD_DAYS,due,daysLeft,check,fetchCatalog,candidates,approve,modelsExtra,saveModelsExtra,mergeModels,nhtsa,importNhtsa,translateFr,tradItem,autoImport,relaunch };
+  return { PERIOD_DAYS,due,daysLeft,check,fetchCatalog,candidates,approve,modelsExtra,saveModelsExtra,mergeModels,
+           nhtsa,importNhtsa,translateFr:TRAD.translateFr,tradItem,autoImport,relaunch };
 })();
