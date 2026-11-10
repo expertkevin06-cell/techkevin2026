@@ -3,15 +3,16 @@ const Recalls = (() => {
   const TH=["Essence","Diesel","Hybride"];
   const FR=r=>frObj(r,["comp","risk","fix"]);
   const DB=[
+    {id:"RAP-DAC-2021-SPRING-BRAKE",brands:["Dacia"],models:["Spring"],fuels:["Électrique"],y0:2021,y1:2022,comp:"Logiciel de freinage / régénération",risk:"Réduction efficacité de freinage",fix:"Mise à jour logicielle en concession",dtcs:["C0110"],status:"open",date:"2021-09"},
+    {id:"RAP-VW-2023-ID-BRAKE",brands:["Volkswagen","Skoda"],models:["ID.3","ID.4","Elroq","Enyaq"],fuels:["Électrique"],y0:2021,y1:2027,comp:"Logiciel ESC / blending frein",risk:"À-coups/pédale dure au freinage",fix:"MAJ logiciel ESC",dtcs:["C0110"],status:"open",date:"2023-05"},
+    {id:"RAP-TOY-2020-BRAKE",brands:["Toyota","Lexus"],models:[],fuels:["Hybride"],y0:2018,y1:2022,comp:"Actuateur de frein (accumulateur)",risk:"Pédale spongieuse / perte assistance",fix:"Remplacement actuateur",dtcs:["C0110","C0161"],status:"open",date:"2020-04"},
     {id:"RAP-PSA-2019-COURROIE",brands:["Peugeot","Citroën","DS","Opel"],models:[],fuels:["Essence"],y0:2018,y1:2023,comp:"Courroie de distribution humide",risk:"Perte assistance freinage",fix:"Kit courroie + pompe à vide",dtcs:["P0505"],status:"open",date:"2019-11"},
     {id:"RAP-REN-2020-13TCE",brands:["Renault","Dacia"],models:[],fuels:["Essence"],y0:2019,y1:2021,comp:"Pompe basse pression",risk:"Calage",fix:"Remplacement pompe",dtcs:["P0087"],status:"open",date:"2020-02"},
     {id:"RAP-DAC-2025-RESS",brands:["Dacia"],models:["Bigster","Duster"],fuels:[],y0:2024,y1:2027,comp:"Ressorts suspension arrière",risk:"Rupture ressort",fix:"Ressorts diamètre majoré",dtcs:[],status:"open",date:"2025-03"},
     {id:"RAP-VW-2018-DSG",brands:["Volkswagen","Audi","Seat","Skoda"],models:[],fuels:TH,y0:2018,y1:2020,comp:"Mécatronique DSG",risk:"Perte propulsion",fix:"Remplacement mécatronique",dtcs:["P0700"],status:"open",date:"2018-06"},
-    {id:"RAP-FORD-2018-PS",brands:["Ford"],models:["Focus","Fiesta"],fuels:TH,y0:2018,y1:2019,comp:"Embrayage PowerShift",risk:"À-coups",fix:"Embrayage + MAJ",dtcs:["P0741"],status:"open",date:"2018-09"},
     {id:"RAP-TES-2021-MCU",brands:["Tesla"],models:["Model S","Model X"],fuels:["Électrique"],y0:2018,y1:2021,comp:"Mémoire eMMC MCU",risk:"Perte affichage",fix:"Remplacement MCU",dtcs:["U0155"],status:"open",date:"2021-02"},
     {id:"RAP-REN-2024-R5-CHG",brands:["Renault"],models:["R5","R4"],fuels:["Électrique"],y0:2024,y1:2027,comp:"Verrou connecteur de charge",risk:"Interruptions charge",fix:"Remplacement verrou",dtcs:["P0C1F"],status:"open",date:"2024-09"},
     {id:"RAP-SKO-2025-ELROQ",brands:["Skoda"],models:["Elroq","Enyaq"],fuels:["Électrique"],y0:2025,y1:2027,comp:"Pompe refroidissement batterie HV",risk:"Bridage/surchauffe",fix:"Remplacement pompe",dtcs:["P0C24"],status:"open",date:"2025-04"},
-    {id:"RAP-REN-2022-12V",brands:["Renault"],models:["Megane","Zoé","Scenic"],fuels:["Électrique"],y0:2022,y1:2027,comp:"Batterie 12V / DC-DC",risk:"Impossibilité démarrage",fix:"Remplacement 12V",dtcs:["P0562"],status:"open",date:"2022-11"},
     {id:"RAP-DAC-2022-SPRING",brands:["Dacia"],models:["Spring"],fuels:["Électrique"],y0:2021,y1:2024,comp:"Étanchéité batterie HT",risk:"Défaut isolement",fix:"Contrôle pack",dtcs:["P0AA6"],status:"open",date:"2022-06"},
     {id:"RAP-TAKATA-2018",brands:["Honda","Nissan","Toyota","Mazda","Subaru","Mitsubishi","BMW","Mercedes","Fiat","Alfa Romeo"],models:[],fuels:[],y0:2018,y1:2020,comp:"Airbag Takata",risk:"Rupture générateur",fix:"Remplacement gratuit",dtcs:["B0001"],status:"open",date:"2018-01"} ];
   const K="tk_rappels_custom_v1";
