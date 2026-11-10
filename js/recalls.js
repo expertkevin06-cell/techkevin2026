@@ -1,6 +1,7 @@
 "use strict";
 const Recalls = (() => {
   const TH=["Essence","Diesel","Hybride"];
+  const FR=r=>frObj(r,["comp","risk","fix"]);
   const DB=[
     {id:"RAP-PSA-2019-COURROIE",brands:["Peugeot","Citroën","DS","Opel"],models:[],fuels:["Essence"],y0:2018,y1:2023,comp:"Courroie de distribution humide",risk:"Perte assistance freinage",fix:"Kit courroie + pompe à vide",dtcs:["P0505"],status:"open",date:"2019-11"},
     {id:"RAP-REN-2020-13TCE",brands:["Renault","Dacia"],models:[],fuels:["Essence"],y0:2019,y1:2021,comp:"Pompe basse pression",risk:"Calage",fix:"Remplacement pompe",dtcs:["P0087"],status:"open",date:"2020-02"},
@@ -15,9 +16,9 @@ const Recalls = (() => {
     {id:"RAP-TAKATA-2018",brands:["Honda","Nissan","Toyota","Mazda","Subaru","Mitsubishi","BMW","Mercedes","Fiat","Alfa Romeo"],models:[],fuels:[],y0:2018,y1:2020,comp:"Airbag Takata",risk:"Rupture générateur",fix:"Remplacement gratuit",dtcs:["B0001"],status:"open",date:"2018-01"} ];
   const K="tk_rappels_custom_v1";
   const read=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d;}catch(e){return d;}};
-  function customs(){ return read(K,[]); }
+  function customs(){ return read(K,[]).map(FR); }
   function saveCustoms(l){ localStorage.setItem(K,JSON.stringify(l)); }
-  function all(){ return customs().concat(DB); }
+  function all(){ return customs().concat(DB.map(FR)); }
   function powerOf(engine){ const m=String(engine).trim().match(/(\d{2,4})\s*$/); return m?+m[1]:null; }
   function forVehicle(brand,modelKey,engine){ const energy=DT.energyOf(engine); const mn=modelKey.split("|")[0]; const pw=powerOf(engine);
     return all().filter(r=>{ if(!r.brands.includes(brand)) return false;
