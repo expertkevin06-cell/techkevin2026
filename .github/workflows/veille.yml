@@ -1,0 +1,18 @@
+name: veille-15j
+on:
+  schedule: [{ cron: "0 3 1,16 * *" }]
+  workflow_dispatch:
+  push: { paths: ["tools/veille.mjs", ".github/workflows/veille.yml"] }
+permissions: { contents: write }
+jobs:
+  veille:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: node tools/veille.mjs
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "veille: données 2018-2027 (modèles, motorisations, pannes, rappels, TSB traduits FR)"
+          file_pattern: "data/veille-pack.json data/catalog-pack.json veille.json"
