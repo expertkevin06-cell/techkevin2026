@@ -1,0 +1,343 @@
+{
+  "app": "TechKevin2026",
+  "version": 1794351779457,
+  "date": "2026-11-10T23:02:59.457Z",
+  "items": [
+    {
+      "type": "tsb",
+      "id": "TSB-STL-DV5-CHAIN-EXT",
+      "src": "TSB",
+      "ref": "Stellantis B24-0210",
+      "brand": "Peugeot",
+      "eng": [
+        "1.5 hdi"
+      ],
+      "en": [
+        "Diesel"
+      ],
+      "y0": 2022,
+      "y1": 2024,
+      "comp": "Chaîne de distribution 8 mm (contrôle)",
+      "prob": "Contrôle chaîne 8 mm après extension garantie",
+      "sym": [
+        "Claquement"
+      ],
+      "fix": "Contrôle/remplacement chaîne 8 mm",
+      "dtcs": [
+        "P0016"
+      ],
+      "sev": 3
+    },
+    {
+      "type": "tsb",
+      "id": "TSB-REN-R5-12V-2026",
+      "src": "TSB",
+      "ref": "Renault B26-0014",
+      "brand": "Renault",
+      "model": "R5",
+      "eng": [
+        "électrique"
+      ],
+      "en": [
+        "Électrique"
+      ],
+      "y0": 2025,
+      "y1": 2027,
+      "comp": "Batterie 12V AGM",
+      "prob": "Décharge 12V prématurée",
+      "sym": [
+        "Démarrage impossible"
+      ],
+      "fix": "Remplacement 12V + MAJ gestion veille",
+      "dtcs": [
+        "P0562"
+      ],
+      "sev": 3
+    },
+    {
+      "type": "tsb",
+      "id": "TSB-VW-MEB-BMS2-2026",
+      "src": "TSB",
+      "ref": "VW B26-0033",
+      "brand": "Volkswagen",
+      "model": "ID.4",
+      "eng": [
+        "électrique"
+      ],
+      "en": [
+        "Électrique"
+      ],
+      "y0": 2024,
+      "y1": 2027,
+      "comp": "BMS calibration SOC v2",
+      "prob": "SOC erratique après charge rapide",
+      "sym": [
+        "Autonomie erratique"
+      ],
+      "fix": "MAJ BMS v2",
+      "dtcs": [
+        "P1A15"
+      ],
+      "sev": 2
+    },
+    {
+      "type": "tsb",
+      "id": "TSB-DAC-BIGSTER-RESS2",
+      "src": "TSB",
+      "ref": "Dacia B26-0007",
+      "brand": "Dacia",
+      "model": "Bigster",
+      "en": [],
+      "y0": 2025,
+      "y1": 2027,
+      "comp": "Ressorts arrière (lot 2)",
+      "prob": "Casse ressorts lot 2",
+      "sym": [
+        "Claquement arrière"
+      ],
+      "fix": "Ressorts diamètre majoré",
+      "dtcs": [],
+      "sev": 3
+    },
+    {
+      "id": "NHTSA-25V835000",
+      "type": "recall",
+      "brand": "Volkswagen",
+      "model": "Id.4",
+      "y0": 2026,
+      "y1": 2026,
+      "comp": "roues:LUGS/NUTS/BOLTS/STUDS",
+      "risk": "Incorrect roue bolts can allow a roue to detach from the vehicle, increasing the risk of a collision.",
+      "fix": "Owners are advised not to drive their vehicles until they have been repaired. concessions will contrôler and remplacer the roue bolts as necessary, free of charge. Owner notification letters were mailed December 12, 2025. Owners may contact Volkswagen customer service at 1-800-893-5298. Volkswagen's number for this recall is 44BW. Vehicle Identification Numbers (VINs) involved in this recall became searchable on NHTSA.gov on December 5, 2025.",
+      "src": "NHTSA",
+      "ref": "25V835000",
+      "date": "04/12/2025",
+      "dtcs": [],
+      "sev": 3
+    },
+    {
+      "id": "NHTSA-26V630000",
+      "type": "recall",
+      "brand": "Volkswagen",
+      "model": "Id.4",
+      "y0": 2026,
+      "y1": 2026,
+      "comp": "système électrique:PROPULSION SYSTEM:TRACTION batterie",
+      "risk": "A vehicle incendie increases the risk of blessure.",
+      "fix": "Owners are advised to only charge their vehicles to a maximum of 80% batterie capacity until the repair has been completed. The solution is currently under development. Interim letters, notifying owners of the safety risk, are expected to be mailed November 27, 2026. Additional letters will be sent once the solution is available. Owners may contact Volkswagen customer service at 1-800-893-5298. Volkswagen's number for this recall is 93EX. Vehicle Identification Numbers (VINs) involved in this recall became searchable on NHTSA.gov on October 6, 2026.",
+      "src": "NHTSA",
+      "ref": "26V630000",
+      "date": "01/10/2026",
+      "dtcs": [],
+      "sev": 3
+    },
+    {
+      "id": "NHTSA-25V410000",
+      "type": "recall",
+      "brand": "Tesla",
+      "model": "Model 3",
+      "y0": 2026,
+      "y1": 2026,
+      "comp": "SEATS:CRITICAL FASTENERS",
+      "risk": "The seat may not properly restrain the occupant, increasing the risk of blessure during a collision.",
+      "fix": "Tesla Service Centers will contrôler and tighten or remplacer the seat assembly fasteners as necessary, free of charge. Owner notification letters were mailed August 16, 2025. Owners may contact Tesla customer service at 1-877-798-3752. Tesla's number for this recall is SB-25-13-003.",
+      "src": "NHTSA",
+      "ref": "25V410000",
+      "date": "18/06/2025",
+      "dtcs": [],
+      "sev": 3
+    },
+    {
+      "id": "NHTSA-25V857000",
+      "type": "recall",
+      "brand": "Bmw",
+      "model": "X3",
+      "y0": 2026,
+      "y1": 2026,
+      "comp": "direction:direction CONTROL module",
+      "risk": "Unintended direction roue movement while the vehicle is stationary increases the risk of an blessure and on the road, a collision.",
+      "fix": "The direction system logiciel will be updated, free of charge, either over-the-air (OTA) or by a concession. Owner notification letters were mailed February 6, 2026. Owners may contact BMW customer service at 1-800-525-7417. Vehicle Identification Numbers (VINs) involved in this recall will be searchable on NHTSA.gov beginning February 2, 2026.",
+      "src": "NHTSA",
+      "ref": "25V857000",
+      "date": "12/12/2025",
+      "dtcs": [],
+      "sev": 3
+    },
+    {
+      "id": "NHTSA-26V524000",
+      "type": "recall",
+      "brand": "Bmw",
+      "model": "X3",
+      "y0": 2026,
+      "y1": 2026,
+      "comp": "direction:LINKAGES:KNUCKLE:SPINDLE:ARM",
+      "risk": "An incorrectly attached direction spindle can lead to a loss of direction control, increasing the risk of a collision.",
+      "fix": "concessions will contrôler the direction connection and remplacer hardware or remplacer the spindle and column, as necessary, free of charge. Owner notification letters were mailed October 8, 2026.  Owners may contact BMW customer service at 1-800-525-7417. Vehicle Identification Numbers (VINs) involved in this recall will become searchable on NHTSA.gov beginning October 2, 2026.",
+      "src": "NHTSA",
+      "ref": "26V524000",
+      "date": "12/08/2026",
+      "dtcs": [],
+      "sev": 3
+    },
+    {
+      "id": "NHTSA-25V549000",
+      "type": "recall",
+      "brand": "Hyundai",
+      "model": "Tucson",
+      "y0": 2026,
+      "y1": 2026,
+      "comp": "moteur AND moteur COOLING:CRITICAL FASTENERS",
+      "risk": "A loss of drive power increases the risk of a collision. An oil fuite in the presence of hot moteur composants can increase the risk of an moteur compartment incendie.",
+      "fix": "concessions will remplacer the moteur, free of charge. Owner notification letters were mailed October 23, 2025. Owners may contact Hyundai customer service at 1-855-371-9460. Hyundai's number for this recall is 281.",
+      "src": "NHTSA",
+      "ref": "25V549000",
+      "date": "26/08/2025",
+      "dtcs": [],
+      "sev": 3
+    },
+    {
+      "id": "NHTSA-26V047000",
+      "type": "recall",
+      "brand": "Hyundai",
+      "model": "Tucson",
+      "y0": 2026,
+      "y1": 2026,
+      "comp": "système électrique: INSTRUMENT CLUSTER/PANEL",
+      "risk": "An instrument panel display that fails to show critical safety information, such as the speedometer or warning lights, increases the risk of a collision.",
+      "fix": "The instrument panel display logiciel will be updated over-the-air (OTA) or by a concession, free of charge. Owner notification letters were mailed March 24, 2026. Owners may contact Hyundai's customer service at 855-371-9460. Hyundai's number for this recall is 293. Vehicle Identification Numbers (VINs) involved in this recall became searchable on NHTSA.gov on January 28, 2026.",
+      "src": "NHTSA",
+      "ref": "26V047000",
+      "date": "27/01/2026",
+      "dtcs": [],
+      "sev": 3
+    },
+    {
+      "id": "NHTSA-26V254000",
+      "type": "recall",
+      "brand": "Hyundai",
+      "model": "Tucson",
+      "y0": 2026,
+      "y1": 2026,
+      "comp": "airbagS:capteur:SIDE IMPACT",
+      "risk": "airbags that do not deploy as intended increase the risk of blessure in a collision.",
+      "fix": "concessions will contrôler and remplacer the impact capteur(s), as necessary, free of charge. Owner notification letters were mailed June 11, 2026. Owners may contact Hyundai's customer service at 855-371-9460. Hyundai's number for this recall is 299. Vehicle Identification Numbers (VINs) involved in this recall became searchable on NHTSA.gov on April 22, 2026.",
+      "src": "NHTSA",
+      "ref": "26V254000",
+      "date": "21/04/2026",
+      "dtcs": [],
+      "sev": 3
+    },
+    {
+      "id": "NHTSA-26V316000",
+      "type": "recall",
+      "brand": "Hyundai",
+      "model": "Tucson",
+      "y0": 2026,
+      "y1": 2026,
+      "comp": "FORWARD COLLISION AVOIDANCE: AUTOMATIC EMERGENCY BRAKING",
+      "risk": "Unexpected braking increases the risk of a collision.",
+      "fix": "concessions will update the front caméra logiciel, free of charge. Owner notification letters are expected to be mailed July 17, 2026. Owners may contact Hyundai customer service at 1-855-371-9460. Hyundai's number for this recall is 302. Vehicle Identification Numbers (VINs) involved in this recall became searchable on NHTSA.gov on May 20, 2026.",
+      "src": "NHTSA",
+      "ref": "26V316000",
+      "date": "19/05/2026",
+      "dtcs": [],
+      "sev": 3
+    },
+    {
+      "id": "NHTSA-26V400000",
+      "type": "recall",
+      "brand": "Hyundai",
+      "model": "Tucson",
+      "y0": 2026,
+      "y1": 2026,
+      "comp": "système électrique: INSTRUMENT CLUSTER/PANEL",
+      "risk": "An instrument panel display that fails to show critical safety information, such as the speedometer or warning lights, increases the risk of a collision.",
+      "fix": "The instrument panel display logiciel will be updated over-the-air (OTA) or by a concession, free of charge. Owner notification letters are expected to be mailed August 22, 2026. Owners may contact Hyundai's customer service at 855-371-9460. Hyundai's number for this recall is 304. Vehicle Identification Numbers (VINs) involved in this recall became searchable on NHTSA.gov on June 25, 2026.",
+      "src": "NHTSA",
+      "ref": "26V400000",
+      "date": "24/06/2026",
+      "dtcs": [],
+      "sev": 3
+    },
+    {
+      "id": "NHTSA-26V136000",
+      "type": "recall",
+      "brand": "Volvo",
+      "model": "Ex30",
+      "y0": 2026,
+      "y1": 2026,
+      "comp": "ceintures de sécurité:FRONT:WARNING LIGHT/DEVICES",
+      "risk": "An audible warning chime that does not properly alert of an unbelted ceinture de sécurité can increase the risk of blessure during a collision.",
+      "fix": "concessions will remplacer the terminals at the audio module connector, free of charge. Owner notification letters were mailed March 26, 2026. Owners may contact Volvo Car’s customer service at 1-800-458-1552. Volvo Car’s number for this recall is R10365. Vehicle Identification Numbers (VINs) involved in this recall became searchable on NHTSA.gov on March 13, 2026.",
+      "src": "NHTSA",
+      "ref": "26V136000",
+      "date": "11/03/2026",
+      "dtcs": [],
+      "sev": 3
+    },
+    {
+      "id": "NHTSA-26V671000",
+      "type": "recall",
+      "brand": "Volvo",
+      "model": "Ex30",
+      "y0": 2026,
+      "y1": 2026,
+      "comp": "SEATS:FRONT ASSEMBLY:HEAD RESTRAINT",
+      "risk": "A detached head restraint cushion can increase the risk of blessure during a collision.",
+      "fix": "concessions will apply an adhesive to reinforce the head cushion attachment, free of charge. Owner notification letters are expected to be mailed November 30, 2026. Owners may contact Volvo Car’s customer service at 1-800-458-1552. Volvo Car’s number for this recall is R10396. Vehicle Identification Numbers (VINs) involved in this recall became searchable on NHTSA.gov on October 9, 2026.",
+      "src": "NHTSA",
+      "ref": "26V671000",
+      "date": "09/10/2026",
+      "dtcs": [],
+      "sev": 3
+    },
+    {
+      "id": "NHTSA-26V009000",
+      "type": "recall",
+      "brand": "Rivian",
+      "model": "R1s",
+      "y0": 2026,
+      "y1": 2026,
+      "comp": "ceintures de sécurité:CRITICAL FASTENERS",
+      "risk": "An improperly secured ceinture de sécurité retractor may not adequately restrain the seat occupant, increasing the risk of blessure during a collision.",
+      "fix": "Rivian will contrôler and tighten the bolts as necessary, free of charge. Owner notification letters were mailed March 2, 2026. Owners may contact Rivian customer service at 1-888-748-4261. Rivian's number for this recall is FSAM-1795.",
+      "src": "NHTSA",
+      "ref": "26V009000",
+      "date": "16/01/2026",
+      "dtcs": [],
+      "sev": 3
+    },
+    {
+      "id": "NHTSA-26V508000",
+      "type": "recall",
+      "brand": "Rivian",
+      "model": "R1s",
+      "y0": 2026,
+      "y1": 2026,
+      "comp": "EXTERIOR LIGHTING:TURN SIGNAL",
+      "risk": "Turn signals that do not function properly increase the risk of a collision.",
+      "fix": "Rivian will contrôler and remplacer the front turn signals as necessary, free of charge. Owner notification letters were mailed September 28, 2026. Owners may contact Rivian customer service at 1-888-748-4261. Rivian's number for this recall is FSAM-1833. This is an expansion of Recall 25V387. Vehicle Identification Numbers (VINs) involved in this recall will be searchable on NHTSA.gov on August 31, 2026.",
+      "src": "NHTSA",
+      "ref": "26V508000",
+      "date": "06/08/2026",
+      "dtcs": [],
+      "sev": 3
+    },
+    {
+      "id": "NHTSA-26V597000",
+      "type": "recall",
+      "brand": "Rivian",
+      "model": "R1s",
+      "y0": 2026,
+      "y1": 2026,
+      "comp": "BACK OVER PREVENTION:logiciel",
+      "risk": "An obstructed rearview caméra image can reduce the driver's view behind the vehicle, increasing the risk of a collision.",
+      "fix": "Rivian has released an over-the-air (OTA) logiciel update, free of charge. Owner notification letters are expected to be mailed November 9, 2026. Owners may contact Rivian customer service at 1-888-748-4261. Rivian's number for this recall is FSAM-1866. Vehicle Identification Numbers (VINs) involved in this recall will be searchable on NHTSA.gov on November 9, 2026.",
+      "src": "NHTSA",
+      "ref": "26V597000",
+      "date": "16/09/2026",
+      "dtcs": [],
+      "sev": 3
+    }
+  ]
+}

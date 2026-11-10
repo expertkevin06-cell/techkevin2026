@@ -1,0 +1,451 @@
+{
+  "app": "TechKevin2026",
+  "version": 1794351779457,
+  "date": "2026-11-10T23:02:59.458Z",
+  "items": [
+    {
+      "brand": "Xiaomi",
+      "o": "AS",
+      "models": [
+        {
+          "model": "SU7",
+          "y0": 2024,
+          "engines": [
+            "Électrique 299",
+            "Électrique 495",
+            "Électrique 673"
+          ]
+        },
+        {
+          "model": "YU7",
+          "y0": 2025,
+          "engines": [
+            "Électrique 320",
+            "Électrique 500"
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Lucid",
+      "o": "US",
+      "models": [
+        {
+          "model": "Air",
+          "y0": 2023,
+          "engines": [
+            "Électrique 480",
+            "Électrique 850"
+          ]
+        },
+        {
+          "model": "Gravity",
+          "y0": 2025,
+          "engines": [
+            "Électrique 800",
+            "Électrique 900"
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Rivian",
+      "o": "US",
+      "models": [
+        {
+          "model": "R2",
+          "y0": 2026,
+          "engines": [
+            "Électrique 300",
+            "Électrique 420"
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "VinFast",
+      "o": "AS",
+      "models": [
+        {
+          "model": "VF 8",
+          "y0": 2023,
+          "engines": [
+            "Électrique 402"
+          ]
+        },
+        {
+          "model": "VF 6",
+          "y0": 2024,
+          "engines": [
+            "Électrique 201"
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Zeekr",
+      "o": "AS",
+      "models": [
+        {
+          "model": "007",
+          "y0": 2024,
+          "engines": [
+            "Électrique 310",
+            "Électrique 475"
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Renault",
+      "o": "FR",
+      "models": [
+        {
+          "model": "Twingo E-Tech",
+          "y0": 2026,
+          "engines": [
+            "Électrique 95",
+            "Électrique 130"
+          ]
+        },
+        {
+          "model": "R5 Turbo 3E",
+          "y0": 2027,
+          "engines": [
+            "Électrique 540"
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Peugeot",
+      "o": "FR",
+      "models": [
+        {
+          "model": "208 III",
+          "y0": 2026,
+          "engines": [
+            "1.2 Hybrid 110",
+            "1.2 Hybrid 145",
+            "Électrique 156"
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Volkswagen",
+      "o": "EU",
+      "models": [
+        {
+          "model": "ID.2",
+          "y0": 2026,
+          "engines": [
+            "Électrique 170",
+            "Électrique 204",
+            "Électrique 226"
+          ]
+        },
+        {
+          "model": "Golf IX",
+          "y0": 2027,
+          "engines": [
+            "1.5 TSI 130",
+            "2.0 TSI 204",
+            "eHybrid 272"
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Skoda",
+      "o": "EU",
+      "models": [
+        {
+          "model": "Epiq",
+          "y0": 2026,
+          "engines": [
+            "Électrique 170",
+            "Électrique 204"
+          ]
+        },
+        {
+          "model": "Octavia V",
+          "y0": 2027,
+          "engines": [
+            "1.5 TSI 130",
+            "2.0 TDI 150",
+            "eHybrid 204"
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Toyota",
+      "o": "AS",
+      "models": [
+        {
+          "model": "Urban Cruiser",
+          "y0": 2025,
+          "engines": [
+            "Électrique 184",
+            "Électrique 231"
+          ]
+        },
+        {
+          "model": "RAV4 VI",
+          "y0": 2026,
+          "engines": [
+            "2.5 Hybrid 222",
+            "PHEV 306"
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Tesla",
+      "o": "US",
+      "models": [
+        {
+          "model": "Model 2",
+          "y0": 2026,
+          "engines": [
+            "Électrique 204",
+            "Électrique 283"
+          ]
+        },
+        {
+          "model": "Cybercab",
+          "y0": 2027,
+          "engines": [
+            "Électrique 204"
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "BMW",
+      "o": "EU",
+      "models": [
+        {
+          "model": "iX3 (Neue Klasse)",
+          "y0": 2026,
+          "engines": [
+            "Électrique 340",
+            "Électrique 470"
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Mercedes",
+      "o": "EU",
+      "models": [
+        {
+          "model": "CLA EV (MMA)",
+          "y0": 2025,
+          "engines": [
+            "Électrique 272",
+            "Électrique 354"
+          ]
+        },
+        {
+          "model": "GLC EV",
+          "y0": 2026,
+          "engines": [
+            "Électrique 388",
+            "Électrique 490"
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Kia",
+      "o": "AS",
+      "models": [
+        {
+          "model": "EV4",
+          "y0": 2025,
+          "engines": [
+            "Électrique 204"
+          ]
+        },
+        {
+          "model": "EV5",
+          "y0": 2025,
+          "engines": [
+            "Électrique 218",
+            "Électrique 325"
+          ]
+        },
+        {
+          "model": "EV2",
+          "y0": 2026,
+          "engines": [
+            "Électrique 136",
+            "Électrique 204"
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Hyundai",
+      "o": "AS",
+      "models": [
+        {
+          "model": "Ioniq 7",
+          "y0": 2025,
+          "engines": [
+            "Électrique 218",
+            "Électrique 325"
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "BYD",
+      "o": "AS",
+      "models": [
+        {
+          "model": "Sealion 7",
+          "y0": 2025,
+          "engines": [
+            "Électrique 313",
+            "Électrique 530"
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Volvo",
+      "o": "EU",
+      "models": [
+        {
+          "model": "EX60",
+          "y0": 2026,
+          "engines": [
+            "Électrique 374",
+            "Électrique 517"
+          ]
+        },
+        {
+          "model": "ES90",
+          "y0": 2025,
+          "engines": [
+            "Électrique 333",
+            "Électrique 670"
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Polestar",
+      "o": "EU",
+      "models": [
+        {
+          "model": "5",
+          "y0": 2026,
+          "engines": [
+            "Électrique 544",
+            "Électrique 884"
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Jeep",
+      "o": "US",
+      "models": [
+        {
+          "model": "Wagoneer S",
+          "y0": 2025,
+          "engines": [
+            "Électrique 600"
+          ]
+        },
+        {
+          "model": "Recon",
+          "y0": 2026,
+          "engines": [
+            "Électrique 500"
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Nissan",
+      "o": "AS",
+      "models": [
+        {
+          "model": "Leaf III",
+          "y0": 2025,
+          "engines": [
+            "Électrique 214"
+          ]
+        },
+        {
+          "model": "Micra EV",
+          "y0": 2026,
+          "engines": [
+            "Électrique 122",
+            "Électrique 150"
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Mazda",
+      "o": "AS",
+      "models": [
+        {
+          "model": "6e",
+          "y0": 2025,
+          "engines": [
+            "Électrique 258"
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Suzuki",
+      "o": "AS",
+      "models": [
+        {
+          "model": "e-Vitara",
+          "y0": 2025,
+          "engines": [
+            "Électrique 144",
+            "Électrique 184"
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Mini",
+      "o": "EU",
+      "models": [
+        {
+          "model": "Aceman",
+          "y0": 2024,
+          "engines": [
+            "Électrique 184",
+            "Électrique 218"
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Fiat",
+      "o": "EU",
+      "models": [
+        {
+          "model": "Panda IV",
+          "y0": 2026,
+          "engines": [
+            "1.0 Hybrid 70",
+            "Électrique 118"
+          ]
+        }
+      ]
+    }
+  ]
+}
