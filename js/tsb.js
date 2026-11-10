@@ -2,6 +2,7 @@
 const TSB = (() => {
   const SRC={RC:"RappelConso",NHTSA:"NHTSA",SG:"Safety Gate",TSB:"TSB constructeur",BUL:"Bulletin technique",WEB:"Presse / site spécialisé"};
   const TH=["Essence","Diesel","Hybride"];
+  const FR=t=>frObj(t,["comp","prob","fix","sym"]);
   const DB=[
     {id:"TSB-STL-DV5-CHAIN",src:"TSB",ref:"Stellantis B23-0147",brands:["Peugeot","Citroën","DS","Opel"],models:[],eng:["1.5 hdi","1.5 bluehdi"],en:["Diesel"],y0:2018,y1:2021,comp:"Chaîne de distribution (7 mm)",prob:"Usure/élongation chaîne 7 mm ; risque rupture",sym:["Claquement à froid","Voyant moteur"],fix:"Chaîne renforcée 8 mm + galets + pompe",dtc:["P0016","P0340"],sev:4},
     {id:"BUL-STL-DV5-REGEN",src:"BUL",ref:"Stellantis N02-2019",brands:["Peugeot","Citroën","DS","Opel"],models:[],eng:["1.5 hdi","1.5 bluehdi"],en:["Diesel"],y0:2018,y1:2022,comp:"FAP / régénérations",prob:"Régénérations excessives → dilution huile",sym:["Régénérations fréquentes","Niveau huile monte"],fix:"MAJ calculateur + vidange rapprochée",dtc:["P2463","P242F"],sev:3},
@@ -20,10 +21,10 @@ const TSB = (() => {
     {id:"SG-TAKATA",src:"SG",ref:"2018-2020",brands:["Honda","Nissan","Toyota","Mazda","Subaru","Mitsubishi","BMW","Mercedes","Fiat","Alfa Romeo"],models:[],eng:[],en:[],y0:2018,y1:2020,comp:"Airbag Takata",prob:"Rupture générateur",sym:["Voyant airbag"],fix:"Remplacement gratuit",dtc:["B0001"],sev:4} ];
   const K="tk_tsb_custom_v1";
   const read=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d;}catch(e){return d;}};
-  function customs(){ return read(K,[]); }
+  function customs(){ return read(K,[]).map(FR); }
   function saveCustoms(l){ localStorage.setItem(K,JSON.stringify(l)); }
   function normEng(s){ return String(s).toLowerCase().replace(/blue\s?hdi/g,"hdi").replace(/blue\s?dci/g,"dci").replace(/e-?tech/g,"etech").replace(/[^a-z0-9.]/g,""); }
-  function all(){ return customs().concat(DB); }
+  function all(){ return customs().concat(DB.map(FR)); }
   function forVehicle(brand,modelName,mYear,engine){ const energy=DT.energyOf(engine); const e=normEng(engine);
     return all().filter(t=>{ if(!t.brands.includes(brand)) return false;
       if(t.models&&t.models.length&&!t.models.some(m=>modelName.toLowerCase().includes(m.toLowerCase()))) return false;
