@@ -18,6 +18,21 @@
   <button onclick="location.reload()">Recharger</button>
   <button onclick="if('caches'in window)caches.keys().then(k=>k.forEach(caches.delete));location.reload()">Vider cache</button>
 </div>
+
+<!-- GARDE-FOU : vérifie que chaque module JS est bien chargé (détecte un fichier cassé/manquant) -->
+<script>
+window.__TK_MODULES=["CONFIG","Store","TRAD","Bus","Auth","DT","Recalls","TSB","Veille","Wallpaper","Updater","PDF","Voyants","SelfTest","App"];
+function __tkMissing(){ return window.__TK_MODULES.filter(function(g){ try{ return (new Function("return typeof "+g))()==="undefined"; }catch(e){ return true; } }); }
+function __tkShow(msg){ var b=document.getElementById("boot-error"); if(!b) return; b.style.display="block";
+  var m=document.getElementById("be-msg"); if(m) m.textContent=(m.textContent?m.textContent+" | ":"")+msg; }
+window.addEventListener("error", function(e){ if(e && e.message) __tkShow("Erreur JS : "+e.message+(e.filename?" ("+String(e.filename).split("/").pop()+")":"")); }, true);
+window.addEventListener("unhandledrejection", function(e){ __tkShow("Promesse rejetée : "+((e.reason&&e.reason.message)||e.reason)); });
+window.addEventListener("load", function(){
+  var miss=__tkMissing();
+  if(miss.length){ __tkShow("Module(s) manquant(s)/fichier JS cassé : "+miss.join(", ")+" → remplacez le js/ correspondant puis « Vider cache »."); }
+});
+</script>
+
 <script src="js/config.js"></script>
 <script src="js/store.js"></script>
 <script src="js/trad.js"></script>
