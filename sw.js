@@ -12,7 +12,6 @@ self.addEventListener("fetch", e => {
   const u=new URL(e.request.url);
   if (u.pathname.endsWith("update.json")||u.pathname.endsWith("veille.json")||u.pathname.includes("/data/")){
     e.respondWith(fetch(e.request,{cache:"no-store"}).catch(()=>caches.match(e.request).then(h=>h||Response.error()))); return; }
-  /* API GitHub + raw.githubusercontent + proxy CORS : network-first strict */
   if (u.hostname==="api.github.com" || u.hostname==="raw.githubusercontent.com" || u.hostname==="corsproxy.io"){
     e.respondWith(fetch(e.request,{cache:"no-store"}).catch(()=>Response.error())); return; }
   if (u.hostname==="ntfy.sh" || u.hostname==="expertkevin06-cell.github.io"){
