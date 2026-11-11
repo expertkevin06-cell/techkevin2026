@@ -10,11 +10,11 @@ function notify(t,b){ try{ if("Notification" in window&&Notification.permission=
 function fatal(e){ console.error(e); const b=document.getElementById("boot-error"); if(b){ b.style.display="block"; const m=b.querySelector("#be-msg"); if(m) m.textContent=(e&&e.message)||String(e); } }
 window.addEventListener("error", e=>fatal(e.error||e.message));
 window.addEventListener("unhandledrejection", e=>fatal(e.reason));
-
 function clearAutofill(){ const ids=["l-user","l-pass","l-code"];
   const wipe=()=>ids.forEach(id=>{ const el=document.getElementById(id); if(el){ el.value=""; el.setAttribute("value",""); } });
   wipe(); setTimeout(wipe,120); setTimeout(wipe,400); setTimeout(wipe,900); }
 function randName(){ return "f"+Math.random().toString(36).slice(2,9); }
+function extAvailable(){ return typeof External !== "undefined" && typeof External.status === "function"; }
 
 const App = {
   deferredPrompt:null, pollTimer:null,
@@ -28,11 +28,13 @@ const App = {
       window.addEventListener("offline",()=>App.updateNet());
       Updater.checkAndApply().then(r=>{ if(r.ok){ toast("✅ MAJ v"+r.version+" appliquée"); Wallpaper.apply(); } }).catch(()=>{});
       Veille.autoImport().then(r=>{
-        if(isAdmin() && (r.c.count||r.v.count||(r.ext&&r.ext.ok))){
-          const s=r.ext||{};
-          toast("📥 Import auto : catalogue +"+(r.c.count||0)+" veille +"+(r.v.count||0)+
-            (s.ok?(" • externe +"+(s.models||0)+" modèles +"+(s.tsb||0)+" TSB +"+(s.recalls||0)+" rappels"):""));
-        }
+        try{
+          const e = r && r.ext;
+          if(isAdmin() && (r.c.count||r.v.count||(e&&e.ok))){
+            toast("📥 Import auto : catalogue +"+(r.c.count||0)+" veille +"+(r.v.count||0)+
+              (e&&e.ok?(" • externe +"+(e.models||0)+" modèles +"+(e.tsb||0)+" TSB"):""));
+          }
+        }catch(_){}
       }).catch(()=>{});
       App.route(); App.startPoll();
       const st=await SelfTest.run(); const bad=SelfTest.failures();
@@ -52,15 +54,17 @@ const App = {
   async updateBell(){ const reqs=await Bus.requests(); const decs=await Bus.decisions(); const done=new Set(decs.map(d=>d.ref));
     const pend=reqs.filter(r=>!done.has(r.ref)).length; const b=$("#bell"); if(b){ const s=b.querySelector(".bb"); if(s) s.textContent=pend||""; } },
   async relance(){ toast("🔄 Relance mise à jour manuelle…");
-    const r=await Veille.relaunch(); Wallpaper.apply();
-    const e=r.ext||{};
-    toast("🔄 Veille +"+(r.a.count||0)+" • Catalogue +"+(r.c.count||0)+
-      (e.ok?(" • Base externe +"+(e.models||0)+" modèles +"+(e.tsb||0)+" TSB +"+(e.recalls||0)+" rappels")
-      :(" • Base externe : "+(e.reason||"n/d"))));
+    try{
+      const r=await Veille.relaunch(); Wallpaper.apply();
+      const e=r.ext||{};
+      toast("🔄 Veille +"+(r.a.count||0)+" • Catalogue +"+(r.c.count||0)+
+        (e.ok?(" • Externe +"+(e.models||0)+" modèles +"+(e.tsb||0)+" TSB")
+        :(" • Externe : "+(e.reason||"n/d"))));
+    }catch(e){ toast("⚠️ Relance : "+(e.message||"erreur")); }
     App.route(); },
   updateNet(){ const on=navigator.onLine; $$("[id^=netbadge]").forEach(el=>{ el.textContent=on?"🌐 connecté":"⛔ hors ligne"; el.className="tag "+(on?"on":"off"); }); },
   async doShare(){ const url=location.origin+location.pathname; try{ if(navigator.share){ await navigator.share({title:CONFIG.APP_NAME,url}); toast("✅ Lien partagé"); } else { await navigator.clipboard.writeText(url); toast("🔗 Lien copié"); } }catch(e){ toast("Partage annulé"); } },
-  doShareMail(){ mailto("",CONFIG.APP_NAME+" — application diagnostic","Bonjour,\n\n"+CONFIG.APP_NAME+" : base interne + base externe expert Kevin, "+CONFIG.YEARS[0]+"-"+LASTYEAR+", hors ligne.\nLien : "+location.origin+location.pathname+"\n\nCordialement."); toast("📧 Mail préparé"); },
+  doShareMail(){ mailto("",CONFIG.APP_NAME+" — application diagnostic","Bonjour,\n\n"+CONFIG.APP_NAME+" : base interne + base externe expert Kevin, "+CONFIG.YEARS[0]+"-"+LASTYEAR+".\nLien : "+location.origin+location.pathname); toast("📧 Mail préparé"); },
   doPWA(){ window.open("https://www.pwabuilder.com/?url="+encodeURIComponent(location.origin+location.pathname),"_blank"); toast("📦 PWABuilder ouvert"); },
   async doInstall(){ if(App.deferredPrompt){ App.deferredPrompt.prompt(); const r=await App.deferredPrompt.userChoice; toast(r.outcome==="accepted"?"📥 Installation lancée":"Annulé"); App.deferredPrompt=null; } else toast("ℹ️ Menu navigateur → Installer"); },
   route(){ try{
@@ -73,8 +77,9 @@ const App = {
       const V={search:App.renderSearch,codes:App.renderCodes,veh:App.renderVeh,recalls:App.renderRecalls,admin:App.renderAdmin,diag:App.renderDiag};
       App.renderShell((V[view]||App.renderSearch)()); window.scrollTo(0,0);
     }catch(e){ fatal(e); } },
-  renderShell(body){ const role=Session.role(); const ext=External.status();
-    const extTag = ext.pack ? `📥 externe v${(ext.pack.hash||"?").slice(0,6)} • ${ext.pack.stats.tsb} TSB / ${ext.pack.stats.recalls} rappels` : "📥 base externe non importée";
+  renderShell(body){ const role=Session.role();
+    const ext = extAvailable() ? External.status() : null;
+    const extTag = ext && ext.pack ? `📥 externe v${(ext.pack.hash||"?").slice(0,6)} • ${ext.pack.stats.tsb} TSB / ${ext.pack.stats.recalls} rappels` : "📥 base externe inactive";
     $("#app").innerHTML=`
     <div class="topbar"><div class="logo">⚙️ ${CONFIG.APP_NAME.replace("Tech","Tech<span>")}</span></div>
       <span class="badge ${role==='admin'?'b-admin':'b-tier'}">${role==='admin'?'ADMIN':'TIERS'}</span>
@@ -92,7 +97,7 @@ const App = {
       <button type="button" data-act="nav" data-view="recalls" class="${App.state.view==='recalls'||App.state.view==='rappel'?'active':''}">📢 Rappels</button>
       ${isAdmin()?'<button type="button" data-act="nav" data-view="admin" class="'+(App.state.view==='admin'?'active':'')+'">🛠️ Admin</button>':''}
     </nav><main>${body}</main>
-    <div class="footer">${CONFIG.APP_NAME} v${CONFIG.VERSION} — ${CONFIG.YEARS[0]} → ${LASTYEAR} — ${esc(extTag)} — notifications temps réel — base IndexedDB</div>`;
+    <div class="footer">${CONFIG.APP_NAME} v${CONFIG.VERSION} — ${CONFIG.YEARS[0]} → ${LASTYEAR} — ${esc(extTag)}</div>`;
     App.updateNet(); App.bindView(); if(isAdmin()) App.updateBell(); },
   renderLogin(){ const nu=randName(),np=randName(),nc=randName();
     $("#app").innerHTML=`<div class="login-wrap"><div class="card login-box">
@@ -117,7 +122,7 @@ const App = {
     $("#l-tier").onclick=()=>{ if(Auth.loginTier($("#l-code").value)){ location.hash="#/search"; App.route(); } else $("#l-err2").textContent="Code invalide, refusé ou révoqué."; };
     $("#l-req").onclick=()=>App.openRequest(); },
   openRequest(){ const bg=document.createElement("div"); bg.className="modal-bg";
-    bg.innerHTML=`<div class="modal"><h2>🔔 Demande d'accès tiers</h2><p class="muted">Notification directe à l'administrateur. Réponse en notification temps réel.</p>
+    bg.innerHTML=`<div class="modal"><h2>🔔 Demande d'accès tiers</h2><p class="muted">Notification directe. Réponse en notification temps réel.</p>
       <label>Nom / société</label><input id="rq-name" autocomplete="off"><label>Appareil / usage</label><input id="rq-contact" autocomplete="off">
       <div class="row" style="justify-content:flex-end;margin-top:.8rem"><button class="btn sec" data-act="modal-close">Annuler</button><button class="btn" id="rq-send">Envoyer</button></div><div id="rq-out"></div></div>`;
     document.body.appendChild(bg);
@@ -134,11 +139,11 @@ const App = {
     return `<div class="card"><h1>🩺 Autocontrôle</h1><div class="row"><button class="btn" data-act="diag-run">Relancer</button><button class="btn sec" data-act="diag-clearsw">Vider cache SW</button><button class="btn sec" data-act="diag-notif">Activer notifications OS</button><button class="btn sec" data-act="pwa">📦 PWABuilder</button></div>
       <table style="margin-top:.8rem"><thead><tr><th>État</th><th>Test</th><th>Détail</th></tr></thead><tbody>${rows||'<tr><td colspan=3>Lancez les tests.</td></tr>'}</tbody></table></div>`; },
   renderSearch(){ return `<div class="card"><h1>Recherche approfondie (voyants, symptômes, pannes, rappels)</h1>
-      <div class="row" style="margin-top:.6rem"><input id="q" placeholder="freinage, voyant batterie 12V, courroie humide, fuite LDR, EGR, Dacia Spring…" style="flex:1" autocomplete="off"><button class="btn" data-act="search-go">Rechercher</button></div></div>
+      <div class="row" style="margin-top:.6rem"><input id="q" placeholder="freinage, voyant batterie 12V, courroie humide, EGR, Dacia Spring…" style="flex:1" autocomplete="off"><button class="btn" data-act="search-go">Rechercher</button></div></div>
       <div id="voyant-results"></div><div id="tsb-results"></div><div id="results"></div><div id="recall-results"></div>`; },
   doSearch(){ const q=$("#q").value.trim(); if(!q)return;
     const sheets=Voyants.deepSearch(q,null);
-    $("#voyant-results").innerHTML = sheets.length?`<div class="card"><h3>🚨 Voyants & systèmes correspondants (${sheets.length})</h3>
+    $("#voyant-results").innerHTML = sheets.length?`<div class="card"><h3>🚨 Voyants & systèmes (${sheets.length})</h3>
       ${sheets.map(s=>`<div class="sysfault"><div class="row"><b>${esc(s.label)}</b><span class="tag"><span class="sev s${s.sev}"></span></span></div>
         <div style="margin:.3rem 0">${s.voyants.map(v=>`<span class="tag b">${esc(v.n)}</span>`).join("")}</div>
         <p class="muted"><b>Symptômes :</b> ${esc(s.symptomes.join(" • "))}</p>
@@ -171,8 +176,8 @@ const App = {
     const recs=Recalls.forVehicle(b.n,modelKey,S.vehEngine); const tsbs=TSB.forVehicle(b.n,model.name,model.y0,S.vehEngine);
     const sheets=Voyants.sheetsForEnergy(energy);
     return `<div class="card"><div class="row" style="flex-wrap:wrap"><h1>${esc(b.n)} ${esc(model.name)}</h1><span class="tag b">⚙️ ${esc(S.vehEngine)}</span><span class="tag">⚡ ${esc(energy)}</span><span class="tag">${Recalls.powerOf(S.vehEngine)||"—"} ch</span><span class="tag">${model.y0} → ${LASTYEAR}</span><div class="spacer"></div><button class="btn sec small" data-act="veh-reset" data-level="engines">←</button></div>
-      <p class="muted" style="margin-top:.4rem">Propulsion <b>${esc(energy)}</b> — ${res.faults.length} DTC • ${sysF.length} système • ${sheets.length} voyants/systèmes • ${tsbs.length} TSB • ${recs.length} rappels.</p></div>
-      ${sheets.length?`<div class="card"><h3>🚨 Voyants combiné & systèmes (${esc(energy)})</h3>
+      <p class="muted" style="margin-top:.4rem">${res.faults.length} DTC • ${sysF.length} système • ${sheets.length} voyants • ${tsbs.length} TSB • ${recs.length} rappels.</p></div>
+      ${sheets.length?`<div class="card"><h3>🚨 Voyants & systèmes (${esc(energy)})</h3>
         ${sheets.map(s=>`<div class="sysfault"><div class="row"><b>${esc(s.label)}</b><span class="tag"><span class="sev s${s.sev}"></span></span></div>
           <div style="margin:.3rem 0">${s.voyants.map(v=>`<span class="tag b">${esc(v.n)}</span>`).join("")}</div>
           <p class="muted"><b>Symptômes :</b> ${esc(s.symptomes.slice(0,4).join(" • "))}</p>
@@ -197,7 +202,7 @@ const App = {
     <select id="a-tab" style="max-width:230px"><option value="demandes">🔔 Demandes (cases temps réel)</option><option value="veille">🛰️ Veille 15 j</option><option value="external">📥 Base externe expert</option><option value="wallpaper">🖼️ Fond d'écran</option><option value="customs">Fiches perso</option><option value="tsb">📚 TSB perso</option><option value="recalls">Rappels perso</option><option value="update">📦 MAJ APK</option><option value="tiers">Codes tiers</option><option value="audit">Audit</option><option value="secu">Sécurité</option></select></div><div id="a-body"></div>`; },
   async adminTab(t){ const B=$("#a-body");
     if(t==="demandes"){ const reqs=await Bus.requests(); const decs=await Bus.decisions(); const byRef={}; decs.forEach(d=>{byRef[d.ref]=d;});
-      B.innerHTML=`<div class="card"><h3>🔔 Demandes d'accès — cases temps réel</h3><p class="muted">Canal ${esc(CONFIG.NTFY_TOPIC)} • poll ${CONFIG.POLL_MS/1000} s • cochez ✅ / ⛔ ; 🚫 pour révoquer.</p>
+      B.innerHTML=`<div class="card"><h3>🔔 Demandes d'accès — cases temps réel</h3><p class="muted">Canal ${esc(CONFIG.NTFY_TOPIC)} • poll ${CONFIG.POLL_MS/1000} s.</p>
         <div class="row"><button class="btn sec" id="d-poll">🔄 Relevé immédiat</button><button class="btn sec" id="d-notif">Activer notifications OS</button></div></div>
         <div class="card"><h3>Demandes (${reqs.length})</h3>${reqs.length?`<table><thead><tr><th>Réf</th><th>Nom</th><th>Date</th><th>✅ Accorder</th><th>⛔ Refuser</th></tr></thead><tbody>
         ${reqs.map(r=>{ const d=byRef[r.ref];
@@ -211,7 +216,9 @@ const App = {
       B.querySelectorAll("input[data-dd]").forEach(cb=>cb.onchange=()=>{ if(cb.checked){ Auth.denyTier(cb.dataset.dd); toast("⛔ Refus notifié"); const o=B.querySelector(`input[data-dg="${cb.dataset.dd}"]`); if(o)o.checked=false; setTimeout(()=>App.adminTab("demandes"),400); } });
       B.querySelectorAll("input[data-rv]").forEach(cb=>cb.onchange=()=>{ if(cb.checked){ Auth.revokeTier(cb.dataset.rv); toast("🚫 Révoqué"); } else { Auth.toggleTier(cb.dataset.rv); } setTimeout(()=>App.adminTab("demandes"),400); });
       return; }
-    if(t==="external"){ const st=External.status();
+    if(t==="external"){
+      if(!extAvailable()){ B.innerHTML=`<div class="card"><h3>📥 Base externe</h3><p class="muted">Module External non chargé.</p></div>`; return; }
+      const st=External.status();
       const last = st.last ? new Date(st.last).toLocaleString("fr-FR") : "jamais";
       B.innerHTML=`<div class="card"><h3>📥 Base technique externe (expert Kevin)</h3>
         <p class="muted">Source : <code style="color:var(--acc)">${esc(External.SRC)}</code></p>
@@ -220,15 +227,12 @@ const App = {
           <div class="stat">Modèles<b>+${st.pack.stats.models||0}</b></div>
           <div class="stat">TSB/Campagnes<b>+${st.pack.stats.tsb||0}</b></div>
           <div class="stat">Rappels<b>+${st.pack.stats.recalls||0}</b></div>
-          <div class="stat">Fiches expert<b>+${st.pack.stats.faults||0}</b></div></div>
-        <p class="muted" style="margin-top:.4rem">Sources parsées : BATCH_ISSUES (${st.pack.stats.srcBATCH_ISSUES}) • BATCH_MODELS (${st.pack.stats.srcBATCH_MODELS}) • KEY_ISSUES (${st.pack.stats.srcKEY_ISSUES}) • BRAND_EXPERT • GENERIC_EXPERT • UNIV • GENERIC</p>`
+          <div class="stat">Fiches expert<b>+${st.pack.stats.faults||0}</b></div></div>`
         :'<p class="muted">Aucune base externe importée.</p>'}
         <div class="row" style="margin-top:.8rem">
           <button class="btn" id="ext-import">📥 Importer / mettre à jour</button>
           <button class="btn sec" id="ext-reset">🗑️ Vider l'import</button>
-        </div><div id="ext-msg"></div></div>
-        <div class="card"><h3>Fusion avec base locale</h3>
-        <p class="muted">Les données externes sont <b>fusionnées sans doublons</b> dans : TSB customs, Rappels customs, Fiches perso, Catalogue modèles. Elles survivent hors-ligne après le 1er import. L'import auto se relance tous les 7 j.</p></div>`;
+        </div><div id="ext-msg"></div></div>`;
       $("#ext-import").onclick=async()=>{ $("#ext-msg").innerHTML='<div class="ok-msg">⏳ Import en cours…</div>';
         try{ const r=await External.importRemote(true);
           if(r.ok){ $("#ext-msg").innerHTML='<div class="ok-msg">✅ Importé — modèles +'+r.models+' • TSB +'+r.tsb+' • rappels +'+r.recalls+' • fiches +'+r.faults+'</div>'; Veille.mergeModels(); setTimeout(()=>App.adminTab("external"),1200); }
@@ -237,7 +241,7 @@ const App = {
       $("#ext-reset").onclick=()=>{ if(confirm("Vider la base externe importée ?")){ External.reset(); App.adminTab("external"); } };
       return; }
     if(t==="veille"){ const c=Veille.candidates();
-      B.innerHTML=`<div class="card"><h3>🛰️ Veille (${Veille.PERIOD_DAYS} j)</h3><p class="muted">En attente : <b>${c.length}</b> • prochaine dans ${Veille.daysLeft()} j • <button class="btn small" data-act="relance">🔄 Relance</button></p></div>
+      B.innerHTML=`<div class="card"><h3>🛰️ Veille (${Veille.PERIOD_DAYS} j)</h3><p class="muted">En attente : <b>${c.length}</b> • prochaine dans ${Veille.daysLeft()} j.</p></div>
         <div class="card"><h3>Candidats importés (FR)</h3>${c.length?`<table><tbody>${c.map(x=>`<tr><td><span class="tag b">${esc(x.type)}</span></td><td>${esc(x.brand||"")} ${esc(x.model||"")}</td><td>${esc((x.comp||x.title||"").slice(0,50))}</td></tr>`).join("")}</tbody></table>`:'<p class="muted">Aucun.</p>'}</div>`; return; }
     if(t==="wallpaper"){ const cur=Wallpaper.get();
       B.innerHTML=`<div class="card"><h3>🖼️ Fond d'écran</h3><div class="row"><input type="file" id="w-file" accept="image/*" style="flex:1"><button class="btn" id="w-up">Appliquer</button></div>
@@ -253,14 +257,13 @@ const App = {
     if(t==="recalls"){ const l=Recalls.customs(); B.innerHTML=`<div class="card"><h3>Rappels perso (${l.length})</h3>${l.length?`<table><tbody>${l.map((x,i)=>`<tr><td class="code">${esc(x.id)}</td><td>${esc(x.comp)}</td><td><button class="btn small danger" data-rd="${i}">🗑️</button></td></tr>`).join("")}</tbody></table>`:'<p class="muted">Aucun.</p>'}</div>`;
       B.querySelectorAll("[data-rd]").forEach(b=>b.onclick=()=>{ const x=Recalls.customs(); x.splice(+b.dataset.rd,1); Recalls.saveCustoms(x); App.adminTab("recalls"); }); return; }
     if(t==="update"){ const meta=Updater.meta();
-      B.innerHTML=`<div class="card"><h3>📦 MAJ (admin)</h3><p class="muted">Appliquée v${Updater.applied()} • Serveur <span id="u-srv">…</span></p>
-        <button class="btn" data-act="relance" style="margin-bottom:.6rem">🔄 Relance complète</button>
+      B.innerHTML=`<div class="card"><h3>📦 MAJ (admin)</h3><p class="muted">Appliquée v${Updater.applied()}</p>
         <div class="grid g2"><div><label>Version</label><input id="u-ver" type="number" value="${Updater.applied()+1}"></div><div><label>Notes</label><input id="u-notes"></div></div>
         <div class="row" style="margin-top:.6rem"><button class="btn" id="u-dl">⬇️ Pack</button><button class="btn sec" id="u-check">🔄 Vérifier</button></div>
         <hr style="border-color:var(--bd)"><div class="grid g2"><div><label>Jeton GitHub</label><input id="u-token" type="password" autocomplete="new-password"></div><div><label>Owner/repo</label><div class="row"><input id="u-owner" autocomplete="off"><input id="u-repo" autocomplete="off"></div></div></div>
         <button class="btn" id="u-gh" style="margin-top:.6rem">🚀 Publier</button><div id="u-msg"></div></div>`;
       const d=Updater.detectRepo(); $("#u-owner").value=d.owner; $("#u-repo").value=d.repo;
-      Updater.serverManifest().then(m=>{ $("#u-srv").textContent=m?"v"+m.version:"aucune"; if(m)$("#u-ver").value=m.version+1; });
+      Updater.serverManifest().then(m=>{ if(m)$("#u-ver").value=m.version+1; });
       $("#u-check").onclick=async()=>{ const r=await Updater.checkAndApply(); toast(r.ok?"✅ v"+r.version:"ℹ️ "+r.reason); App.adminTab("update"); };
       $("#u-dl").onclick=()=>{ const v=+$("#u-ver").value,n=$("#u-notes").value; Updater.download("update-pack.json",Updater.buildPack(v,n)); setTimeout(()=>Updater.download("update.json",Updater.manifestFor(v,n)),500); };
       $("#u-gh").onclick=async()=>{ const tk=$("#u-token").value.trim(),ow=$("#u-owner").value.trim(),rp=$("#u-repo").value.trim(); if(!tk||!ow||!rp) return $("#u-msg").innerHTML='<div class="err-msg">Champs requis.</div>';
@@ -270,7 +273,7 @@ const App = {
     if(t==="tiers"){ const l=Auth.tiers(); B.innerHTML=`<div class="card"><h3>Codes tiers (${l.length})</h3><table><tbody>${l.map(x=>`<tr><td class="code">${esc(x.code)}</td><td>${esc(x.name)}</td><td>${x.active?'actif':'révoqué'}</td><td><input type="checkbox" data-rv="${esc(x.code)}" ${x.active?"":"checked"}></td></tr>`).join("")}</tbody></table></div>`;
       B.querySelectorAll("input[data-rv]").forEach(cb=>cb.onchange=()=>{ if(cb.checked) Auth.revokeTier(cb.dataset.rv); else Auth.toggleTier(cb.dataset.rv); setTimeout(()=>App.adminTab("tiers"),400); }); return; }
     if(t==="audit"){ const l=Store.read(CONFIG.K.audit,[]); B.innerHTML=`<div class="card"><h3>Journal (${l.length})</h3><table><tbody>${l.slice(0,200).map(x=>`<tr><td class="muted">${esc(x.d.replace("T"," ").slice(0,16))}</td><td>${esc(x.u)}</td><td>${esc(x.action)}</td></tr>`).join("")}</tbody></table></div>`; return; }
-    if(t==="secu"){ B.innerHTML=`<div class="card" style="max-width:460px"><h3>Sécurité</h3><p class="muted">Mot de passe admin unique ; champs login vidés (anti-autofill) ; tiers par code notifié.</p><button class="btn sec" id="s-forget">Oublier cet appareil</button><div id="s-msg"></div></div>`;
+    if(t==="secu"){ B.innerHTML=`<div class="card" style="max-width:460px"><h3>Sécurité</h3><p class="muted">Mot de passe admin unique ; champs login vidés.</p><button class="btn sec" id="s-forget">Oublier cet appareil</button><div id="s-msg"></div></div>`;
       $("#s-forget").onclick=()=>{ Auth.forgetDevice(); $("#s-msg").innerHTML='<div class="ok-msg">Mémorisation supprimée.</div>'; }; return; } },
   bindAdmin(){ $("#a-tab").onchange=e=>App.adminTab(e.target.value); $("#a-new").onclick=()=>App.openEditor(null);
     $("#a-export").onclick=()=>{ Updater.download("sauvegarde-"+Date.now()+".json",{overrides:JSON.parse(localStorage.getItem(CONFIG.K.overrides)||"{}"),customs:Store.customs(),recalls:Recalls.customs(),tsb:TSB.customs(),tiers:Auth.tiers(),modelsExtra:Veille.modelsExtra(),wallpaper:Wallpaper.get()}); };
