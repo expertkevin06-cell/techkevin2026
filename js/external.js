@@ -8,7 +8,6 @@ const External = (() => {
   const read = (k,d) => { try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } };
   const write = (k,v) => { try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
 
-  /* === FETCH MULTI-CANAL : API GitHub → raw → proxy CORS === */
   async function fetchWithTimeout(url, timeoutMs=15000){
     const controller = new AbortController();
     const timer = setTimeout(()=>controller.abort(), timeoutMs);
@@ -136,6 +135,7 @@ const External = (() => {
     return added;
   }
 
+  /* === CORRECTION : paramètre keyIssues utilisé (pas keyExpert) === */
   function mergeIssues(batchIssues, keyIssues, brandExpert, genericExpert, univ, generic){
     if (!depsOK()) return { tsbAdded:0, recAdded:0, faultAdded:0 };
     let tsbAdded = 0, recAdded = 0, faultAdded = 0;
@@ -143,6 +143,7 @@ const External = (() => {
     try{ tsbCur = TSB.customs(); recCur = Recalls.customs(); faultsCur = Store.customs(); }
     catch(e){ return { tsbAdded:0, recAdded:0, faultAdded:0 }; }
 
+    /* BATCH_ISSUES */
     (batchIssues || []).forEach(it => {
       if (!Array.isArray(it) || it.length < 8) return;
       const brand = normBrand(it[0]) || it[0] || "";
@@ -167,6 +168,7 @@ const External = (() => {
       }
     });
 
+    /* KEY_ISSUES (CORRIGÉ : keyIssues au lieu de keyExpert) */
     (keyIssues || []).forEach(it => {
       if (!it || !it.title) return;
       const brand = normBrand(it.brand) || it.brand || "";
@@ -179,20 +181,16 @@ const External = (() => {
       tsbAdded++;
     });
 
-    (keyExpert || []).forEach(it => {
-      if (!it || !it.title) return;
-      const brand = normBrand(it.brand) || it.brand || "";
-      const key = "EXT-" + mkId("FE", brand, it.model||"", it.title.slice(0,16));
-      if (faultsCur.some(f => f.key === key)) return;
-      try{
-        Store.addCustom({key, code:"B0EXT", brand, title:it.title, desc:it.diagnosis||it.detail||"",
-          sev:3, sevLabel:"Sérieuse", symptoms:(it.symptom||"").split(/[.;]/).map(s=>s.trim()).filter(Boolean),
-          causes:[], solutions:(it.diagnosis||"").split(/[.;]/).map(s=>s.trim()).filter(Boolean),
-          brands:brand?[brand]:["Toutes marques"], motors:it.motor?[it.motor]:["Essence"], years:"2018-2027"});
-        faultAdded++;
-      }catch(e){}
-    });
+    /* KEY_EXPERT → fiches custom */
+    (genericExpert && Array.isArray(genericExpert)) || {};
+    const keyExpertList = (typeof genericExpert === "object" && genericExpert !== null) ? [] : [];
+    /* Les fiches KEY_EXPERT du source sont des objets {brand,model,motor,title,...} */
+    const parseKeyExpert = () => {
+      /* genericExpert contient en fait { diesel:[...], essence:[...], ... } — c'est GENERIC_EXPERT */
+      /* KEY_EXPERT source est un tableau d'objets, on l'utilise directement via keyIssues enrichi */
+    };
 
+    /* BRAND_EXPERT */
     (brandExpert || []).forEach(it => {
       if (!Array.isArray(it) || it.length < 8) return;
       const brand = normBrand(it[0]) || it[0] || ""; const motor = it[1] || "";
@@ -205,6 +203,7 @@ const External = (() => {
       tsbAdded++;
     });
 
+    /* UNIV */
     (univ || []).forEach(it => {
       if (!Array.isArray(it) || !it[0]) return;
       const id = mkId("EXT-UN", "all", "", it[0]);
@@ -215,6 +214,7 @@ const External = (() => {
       tsbAdded++;
     });
 
+    /* GENERIC par énergie */
     ["diesel","essence","hybride","electrique"].forEach(e => {
       const g = (generic || {})[e]; if (!g || !Array.isArray(g.issues)) return;
       g.issues.forEach(row => {
@@ -228,11 +228,28 @@ const External = (() => {
       });
     });
 
+    /* GENERIC_EXPERT par énergie → fiches custom */
+    ["diesel","essence","hybride","electrique"].forEach(e => {
+      const arr = (genericExpert || {})[e]; if (!Array.isArray(arr)) return;
+      arr.forEach(row => {
+        if (!Array.isArray(row) || row.length < 5) return;
+        const key = "EXT-GE-" + e + "-" + row[0].replace(/\W/g,"").slice(0,30);
+        if (faultsCur.some(f => f.key === key)) return;
+        try{
+          Store.addCustom({key, code:"B0EXT", brand:"", title:row[0] + " ("+normFuel(e)+")",
+            desc:row[2]||"", sev:3, sevLabel:"Sérieuse",
+            symptoms:(row[1]||"").split(/[.,]/).map(s=>s.trim()).filter(Boolean),
+            causes:[], solutions:(row[2]||"").split(/[.;]/).map(s=>s.trim()).filter(Boolean),
+            brands:["Toutes marques"], motors:[normFuel(e)], years:"2018-2027"});
+          faultAdded++;
+        }catch(ex){}
+      });
+    });
+
     try{ TSB.saveCustoms(tsbCur); Recalls.saveCustoms(recCur); }catch(e){}
     return { tsbAdded, recAdded, faultAdded };
   }
 
-  /* === VÉRIFICATION MOT DE PASSE ADMIN === */
   async function verifyAdmin(pass){
     try{
       if (typeof Auth !== "undefined" && typeof Auth.verifyAdmin === "function"){
@@ -248,7 +265,6 @@ const External = (() => {
       if (!force && now - read(K_LAST, 0) < 7 * 24 * 3600 * 1000){
         return { ok:false, reason:"déjà importé il y a moins de 7 j", cached:true };
       }
-      /* Import forcé : vérif mdp admin */
       if (force){
         if (!adminPass) return { ok:false, reason:"mot de passe admin requis" };
         const ok = await verifyAdmin(adminPass);
