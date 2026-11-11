@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b0f1a">
-<meta name="description" content="TechKevin2026 — diagnostic 2018-2027 : DTC, voyants, symptômes, pannes, rappels, veille auto, FR, hors ligne.">
+<meta name="description" content="TechKevin2026 — diagnostic 2018-2027 : DTC, voyants, symptômes, pannes, rappels + base externe expert Kevin, FR, hors ligne.">
 <title>TechKevin2026</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="assets/icons/icon.svg">
@@ -18,10 +18,8 @@
   <button onclick="location.reload()">Recharger</button>
   <button onclick="if('caches'in window)caches.keys().then(k=>k.forEach(caches.delete));location.reload()">Vider cache</button>
 </div>
-
-<!-- GARDE-FOU : vérifie que chaque module JS est bien chargé (détecte un fichier cassé/manquant) -->
 <script>
-window.__TK_MODULES=["CONFIG","Store","TRAD","Bus","Auth","DT","Recalls","TSB","Veille","Wallpaper","Updater","PDF","Voyants","SelfTest","App"];
+window.__TK_MODULES=["CONFIG","Store","TRAD","Bus","Auth","DT","Recalls","TSB","Veille","Wallpaper","Updater","PDF","Voyants","External","SelfTest","App"];
 function __tkMissing(){ return window.__TK_MODULES.filter(function(g){ try{ return (new Function("return typeof "+g))()==="undefined"; }catch(e){ return true; } }); }
 function __tkShow(msg){ var b=document.getElementById("boot-error"); if(!b) return; b.style.display="block";
   var m=document.getElementById("be-msg"); if(m) m.textContent=(m.textContent?m.textContent+" | ":"")+msg; }
@@ -32,7 +30,6 @@ window.addEventListener("load", function(){
   if(miss.length){ __tkShow("Module(s) manquant(s)/fichier JS cassé : "+miss.join(", ")+" → remplacez le js/ correspondant puis « Vider cache »."); }
 });
 </script>
-
 <script src="js/config.js"></script>
 <script src="js/store.js"></script>
 <script src="js/trad.js"></script>
@@ -46,6 +43,7 @@ window.addEventListener("load", function(){
 <script src="js/updater.js"></script>
 <script src="js/pdf.js"></script>
 <script src="js/voyants.js"></script>
+<script src="js/external.js"></script>
 <script src="js/selftest.js"></script>
 <script src="js/app.js"></script>
 <script>if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");</script>
