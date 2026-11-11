@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b0f1a">
-<meta name="description" content="TechKevin2026 — diagnostic 2018-2027 : DTC, voyants, symptômes, pannes, rappels + base externe expert Kevin, FR, hors ligne.">
+<meta name="description" content="TechKevin2026 — diagnostic 2018-2027 : DTC, voyants, pannes, rappels + base externe expert Kevin.">
 <title>TechKevin2026</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="assets/icons/icon.svg">
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-180.png">
 <link rel="stylesheet" href="css/style.css">
-<style>#boot-error{display:none;position:fixed;inset:auto 0 0 0;background:#3a1010;color:#ffd7d7;padding:.8rem 1rem;z-index:999;font-size:.9rem}#boot-error button{margin-right:.5rem}</style>
+<style>#boot-error{display:none;position:fixed;inset:auto 0 0 0;background:#3a1010;color:#ffd7d7;padding:.8rem 1rem;z-index:999;font-size:.9rem;max-height:40vh;overflow:auto}#boot-error button{margin-right:.5rem}</style>
 </head>
 <body>
 <div id="app"></div>
@@ -19,17 +19,28 @@
   <button onclick="if('caches'in window)caches.keys().then(k=>k.forEach(caches.delete));location.reload()">Vider cache</button>
 </div>
 <script>
+window.__TK_ERRORS=[];
 window.__TK_MODULES=["CONFIG","Store","TRAD","Bus","Auth","DT","Recalls","TSB","Veille","Wallpaper","Updater","PDF","Voyants","External","SelfTest","App"];
 function __tkMissing(){ return window.__TK_MODULES.filter(function(g){ try{ return (new Function("return typeof "+g))()==="undefined"; }catch(e){ return true; } }); }
-function __tkShow(msg){ var b=document.getElementById("boot-error"); if(!b) return; b.style.display="block";
-  var m=document.getElementById("be-msg"); if(m) m.textContent=(m.textContent?m.textContent+" | ":"")+msg; }
-window.addEventListener("error", function(e){ if(e && e.message) __tkShow("Erreur JS : "+e.message+(e.filename?" ("+String(e.filename).split("/").pop()+")":"")); }, true);
-window.addEventListener("unhandledrejection", function(e){ __tkShow("Promesse rejetée : "+((e.reason&&e.reason.message)||e.reason)); });
+function __tkShow(msg){
+  window.__TK_ERRORS.push({t:new Date().toISOString(),m:msg});
+  var b=document.getElementById("boot-error"); if(!b) return; b.style.display="block";
+  var m=document.getElementById("be-msg"); if(m) m.textContent=(m.textContent?m.textContent+"\n":"")+msg;
+}
+window.addEventListener("error", function(e){
+  if(e && e.message) __tkShow("Erreur JS : "+e.message+(e.filename?" ("+String(e.filename).split("/").pop()+")":""));
+}, true);
+window.addEventListener("unhandledrejection", function(e){
+  __tkShow("Promesse rejetée : "+((e.reason&&e.reason.message)||String(e.reason)));
+});
 window.addEventListener("load", function(){
   var miss=__tkMissing();
-  if(miss.length){ __tkShow("Module(s) manquant(s)/fichier JS cassé : "+miss.join(", ")+" → remplacez le js/ correspondant puis « Vider cache »."); }
+  if(miss.length){ __tkShow("Module(s) manquant(s) : "+miss.join(", ")); }
+  else if(window.App && typeof window.App.start === "function"){ /* OK */ }
 });
 </script>
+
+<!-- ORDRE CRITIQUE : external.js AVANT veille.js car veille.js l'utilise -->
 <script src="js/config.js"></script>
 <script src="js/store.js"></script>
 <script src="js/trad.js"></script>
@@ -38,12 +49,12 @@ window.addEventListener("load", function(){
 <script src="js/data.js"></script>
 <script src="js/recalls.js"></script>
 <script src="js/tsb.js"></script>
+<script src="js/external.js"></script>
 <script src="js/veille.js"></script>
 <script src="js/wallpaper.js"></script>
 <script src="js/updater.js"></script>
 <script src="js/pdf.js"></script>
 <script src="js/voyants.js"></script>
-<script src="js/external.js"></script>
 <script src="js/selftest.js"></script>
 <script src="js/app.js"></script>
 <script>if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");</script>
