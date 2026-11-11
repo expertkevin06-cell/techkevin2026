@@ -49,7 +49,6 @@ const Veille = (() => {
     write(K_DONE,done); saveCandidates(cur.filter(c=>!ids.includes(c.id))); mergeModels();
     Store.audit("VEILLE_APPROUVEE",sel.length+" élément(s)"); return sel.length; }
 
-  /* autoImport : GARDE-FOU EXPLICIT sur External */
   async function autoImport(){
     const c=await fetchCatalog(false).catch(()=>({ok:false,count:0}));
     const v=await check(false).catch(()=>({ok:false,count:0}));
@@ -57,20 +56,18 @@ const Veille = (() => {
     try{
       if (typeof External !== "undefined" && typeof External.importRemote === "function"){
         ext = await External.importRemote(false);
-      } else {
-        ext = { ok:false, reason:"module External indisponible" };
       }
     }catch(e){ ext = { ok:false, reason:e.message }; }
     mergeModels();
     return { c, v, ext };
   }
-  async function relaunch(){
+  async function relaunch(adminPass){
     const a=await check(true).catch(e=>({ok:false,reason:e.message,count:0}));
     const c=await fetchCatalog(true).catch(e=>({ok:false,reason:e.message,count:0}));
     let ext = { ok:false, reason:"non lancé" };
     try{
       if (typeof External !== "undefined" && typeof External.importRemote === "function"){
-        ext = await External.importRemote(true);
+        ext = await External.importRemote(true, adminPass);
       }
     }catch(e){ ext = { ok:false, reason:e.message }; }
     const u=await Updater.checkAndApply().catch(e=>({ok:false,reason:e.message}));
