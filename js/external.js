@@ -1,24 +1,21 @@
 "use strict";
 /* =====================================================================
-   IMPORT DE LA BASE TECHNIQUE EXTERNE expertkevin06-cell/auto-diagnostic
-   Charge le app.js source, parse ses constantes globales, mappe vers
-   les schémas locaux (TSB/Recalls/customs/models), persiste en local
-   et fusionne sans doublons. Fonctionne hors-ligne après 1er import.
+   IMPORT DE LA BASE TECHNIQUE EXTERNE expertkevin06-cell/auto-diagnostic.
+   Auto-protégé : si le chargement échoue ou si une dépendance manque,
+   retourne un objet no-op silencieux — jamais de crash de l'APK.
    ===================================================================== */
 const External = (() => {
   const SRC = "https://expertkevin06-cell.github.io/auto-diagnostic/app.js";
   const SRC_ALT = "https://expertkevin06-cell.github.io/auto-diagnostic/";
   const K_VER = "tk_external_ver_v1", K_PACK = "tk_external_pack_v1", K_LAST = "tk_external_last_v1";
-  const read = (k,d) => { try{ return JSON.parse(localStorage.getItem(k)) ?? d; }catch(e){ return d; } };
-  const write = (k,v) => localStorage.setItem(k, JSON.stringify(v));
+  const read = (k,d) => { try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } };
+  const write = (k,v) => { try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
 
-  /* ---------- Parseur du app.js distant (extraction des constantes) ---------- */
   function extractConst(src, name){
-    /* Cherche `const NAME = ...;` jusqu'au prochain `const ` ou `/* */` */
     const re = new RegExp("\\bconst\\s+" + name + "\\s*=\\s*");
     const m = re.exec(src); if (!m) return null;
     let depth = 0, inStr = false, strCh = "", esc = false;
-    let i = m.index + m[0].length, end = i;
+    let i = m.index + m[0].length;
     for (; i < src.length; i++){
       const c = src[i];
       if (esc){ esc = false; continue; }
@@ -28,22 +25,20 @@ const External = (() => {
       if (c === "/" && src[i+1] === "/"){ while (i < src.length && src[i] !== "\n") i++; continue; }
       if (c === "/" && src[i+1] === "*"){ i++; while (i < src.length && !(src[i-1]==="*" && src[i]==="/")) i++; continue; }
       if (c === "[" || c === "{") depth++;
-      else if (c === "]" || c === "}"){ depth--; if (depth === 0){ end = i+1; break; } }
+      else if (c === "]" || c === "}"){ depth--; if (depth === 0){ return src.substring(m.index + m[0].length, i+1); } }
     }
-    if (depth !== 0) return null;
-    return src.substring(m.index + m[0].length, end);
+    return null;
   }
   function safeEval(expr){
     if (!expr) return null;
     try{ return (new Function("return (" + expr + ");"))(); }catch(e){ return null; }
   }
   async function fetchSource(){
-    const tries = [SRC, SRC_ALT + "app.js", SRC_ALT];
-    let txt = "";
+    const tries = [SRC, SRC_ALT + "app.js"];
     for (const u of tries){
       try{
-        const r = await fetch(u + (u.includes("?") ? "&" : "?") + "t=" + Date.now(), { cache:"no-store" });
-        if (r.ok){ txt = await r.text(); if (txt && txt.includes("BATCH_ISSUES")) return txt; }
+        const r = await fetch(u + (u.includes("?") ? "&" : "?") + "t=" + Date.now(), { cache:"no-store", mode:"cors" });
+        if (r.ok){ const txt = await r.text(); if (txt && txt.includes("BATCH_ISSUES")) return txt; }
       }catch(e){}
     }
     throw new Error("Source externe injoignable");
@@ -61,50 +56,42 @@ const External = (() => {
     };
   }
 
-  /* ---------- Mapping vers schémas locaux ---------- */
   const FUEL_MAP = { essence:"Essence", diesel:"Diesel", hybride:"Hybride", electrique:"Électrique", électrique:"Électrique" };
   const normFuel = f => FUEL_MAP[String(f||"").toLowerCase()] || "Essence";
   const normBrand = id => {
-    /* id site externe -> nom complet BRANDS TechKevin */
     const M = {renault:"Renault",peugeot:"Peugeot",citroen:"Citroën",ds:"DS",dacia:"Dacia",
       lancia:"Lancia",cupra:"Cupra",polestar:"Polestar",volkswagen:"Volkswagen",audi:"Audi",
       bmw:"BMW",mercedes:"Mercedes",opel:"Opel",fiat:"Fiat",seat:"Seat",skoda:"Skoda",
       volvo:"Volvo",porsche:"Porsche",mini:"Mini",alfa:"Alfa Romeo",toyota:"Toyota",
       honda:"Honda",nissan:"Nissan",mazda:"Mazda",mitsubishi:"Mitsubishi",subaru:"Subaru",
       suzuki:"Suzuki",hyundai:"Hyundai",kia:"Kia",lexus:"Lexus",byd:"BYD",mg:"MG",
-      lynkco:"Lynk & Co",nio:"Nio",xpeng:"Xpeng",aiways:"Aiways",seres:"Seres",
-      omoda:"Omoda",jaecoo:"Jaecoo",leapmotor:"Leapmotor",ora:"Ora",ford:"Ford",
-      chevrolet:"Chevrolet",jeep:"Jeep",dodge:"Dodge",cadillac:"Cadillac",tesla:"Tesla"};
+      lynkco:"Lynk & Co",nio:"Nio",xpeng:"Xpeng",ford:"Ford",chevrolet:"Chevrolet",
+      jeep:"Jeep",tesla:"Tesla"};
     return M[id] || (id ? id.charAt(0).toUpperCase() + id.slice(1) : "");
-  };
-  const yearsStr = y => {
-    if (!y) return "2018-2027";
-    if (typeof y === "string"){
-      const m = y.match(/(\d{4})\D*(\d{4})?/);
-      if (m) return m[1] + "-" + (m[2] || "2027");
-      return y;
-    }
-    return "2018-2027";
   };
   const yearsRange = y => {
     if (!y) return [2018,2027];
-    const s = yearsStr(y); const m = s.match(/(\d{4})\D*(\d{4})/);
-    if (m) return [+m[1], +m[2]];
+    const s = String(y);
+    const m = s.match(/(\d{4})\D*(\d{4})?/);
+    if (m) return [+m[1], +(m[2] || "2027")];
     const n = parseInt(s,10); return Number.isFinite(n) ? [n, Math.max(n,2027)] : [2018,2027];
   };
   const mkId = (prefix, brand, model, seed) =>
     prefix + "-" + (brand||"").replace(/\W/g,"").slice(0,8) + "-" + (model||"").replace(/\W/g,"").slice(0,12) + "-" + (seed||Math.random().toString(36).slice(2,7));
 
-  /* ---------- Fusion (sans doublons) vers stores locaux ---------- */
+  function depsOK(){
+    return typeof findBrand==="function" && Array.isArray(BRANDS) &&
+           typeof TSB==="object" && typeof Recalls==="object" && typeof Store==="object";
+  }
+
   function mergeModels(arr){
-    if (!Array.isArray(arr)) return 0;
+    if (!depsOK() || !Array.isArray(arr)) return 0;
     let added = 0;
     arr.forEach(item => {
-      /* [brandId, name, years, motors[[name,fuel,power]], brandName, region] */
       if (!Array.isArray(item) || item.length < 4) return;
       const brand = normBrand(item[0]) || item[4] || "";
       const modelName = item[1] || "";
-      const [y0,y1] = yearsRange(item[2]);
+      const [y0] = yearsRange(item[2]);
       const motors = Array.isArray(item[3]) ? item[3].map(m => {
         if (!Array.isArray(m)) return null;
         const name = m[0] || "";
@@ -124,10 +111,12 @@ const External = (() => {
   }
 
   function mergeIssues(batchIssues, keyIssues, brandExpert, genericExpert, univ, generic){
+    if (!depsOK()) return { tsbAdded:0, recAdded:0, faultAdded:0 };
     let tsbAdded = 0, recAdded = 0, faultAdded = 0;
-    const tsbCur = TSB.customs(), recCur = Recalls.customs(), faultsCur = Store.customs();
+    let tsbCur, recCur, faultsCur;
+    try{ tsbCur = TSB.customs(); recCur = Recalls.customs(); faultsCur = Store.customs(); }
+    catch(e){ return { tsbAdded:0, recAdded:0, faultAdded:0 }; }
 
-    /* BATCH_ISSUES : campagnes/pannes par véhicule */
     (batchIssues || []).forEach(it => {
       if (!Array.isArray(it) || it.length < 8) return;
       const brand = normBrand(it[0]) || it[0] || "";
@@ -152,7 +141,6 @@ const External = (() => {
       }
     });
 
-    /* KEY_ISSUES : pannes connues importantes */
     (keyIssues || []).forEach(it => {
       if (!it || !it.title) return;
       const brand = normBrand(it.brand) || it.brand || "";
@@ -165,20 +153,20 @@ const External = (() => {
       tsbAdded++;
     });
 
-    /* KEY_EXPERT : fiches expert -> fiches custom DTC */
     (keyExpert || []).forEach(it => {
       if (!it || !it.title) return;
       const brand = normBrand(it.brand) || it.brand || "";
       const key = "EXT-" + mkId("FE", brand, it.model||"", it.title.slice(0,16));
       if (faultsCur.some(f => f.key === key)) return;
-      Store.addCustom({key, code:"B0EXT", brand, title:it.title, desc:it.diagnosis||it.detail||"",
-        sev:3, sevLabel:"Sérieuse", symptoms:(it.symptom||"").split(/[.;]/).map(s=>s.trim()).filter(Boolean),
-        causes:[], solutions:(it.diagnosis||"").split(/[.;]/).map(s=>s.trim()).filter(Boolean),
-        brands:brand?[brand]:["Toutes marques"], motors:it.motor?[it.motor]:["Essence"], years:yearsStr(it.years)});
-      faultAdded++;
+      try{
+        Store.addCustom({key, code:"B0EXT", brand, title:it.title, desc:it.diagnosis||it.detail||"",
+          sev:3, sevLabel:"Sérieuse", symptoms:(it.symptom||"").split(/[.;]/).map(s=>s.trim()).filter(Boolean),
+          causes:[], solutions:(it.diagnosis||"").split(/[.;]/).map(s=>s.trim()).filter(Boolean),
+          brands:brand?[brand]:["Toutes marques"], motors:it.motor?[it.motor]:["Essence"], years:"2018-2027"});
+        faultAdded++;
+      }catch(e){}
     });
 
-    /* BRAND_EXPERT : guides par marque -> TSB */
     (brandExpert || []).forEach(it => {
       if (!Array.isArray(it) || it.length < 8) return;
       const brand = normBrand(it[0]) || it[0] || ""; const motor = it[1] || "";
@@ -191,23 +179,6 @@ const External = (() => {
       tsbAdded++;
     });
 
-    /* GENERIC_EXPERT : par énergie -> fiches custom */
-    ["diesel","essence","hybride","electrique"].forEach(e => {
-      const arr = (genericExpert || {})[e]; if (!Array.isArray(arr)) return;
-      arr.forEach(row => {
-        if (!Array.isArray(row) || row.length < 5) return;
-        const key = "EXT-GE-" + e + "-" + row[0].replace(/\W/g,"").slice(0,30);
-        if (faultsCur.some(f => f.key === key)) return;
-        Store.addCustom({key, code:"B0EXT", brand:"", title:row[0] + " ("+normFuel(e)+")",
-          desc:row[2]||"", sev:3, sevLabel:"Sérieuse",
-          symptoms:(row[1]||"").split(/[.,]/).map(s=>s.trim()).filter(Boolean),
-          causes:[], solutions:(row[2]||"").split(/[.;]/).map(s=>s.trim()).filter(Boolean),
-          brands:["Toutes marques"], motors:[normFuel(e)], years:"2018-2027"});
-        faultAdded++;
-      });
-    });
-
-    /* UNIV : pannes universelles */
     (univ || []).forEach(it => {
       if (!Array.isArray(it) || !it[0]) return;
       const id = mkId("EXT-UN", "all", "", it[0]);
@@ -218,7 +189,6 @@ const External = (() => {
       tsbAdded++;
     });
 
-    /* GENERIC par énergie -> TSB génériques */
     ["diesel","essence","hybride","electrique"].forEach(e => {
       const g = (generic || {})[e]; if (!g || !Array.isArray(g.issues)) return;
       g.issues.forEach(row => {
@@ -232,38 +202,38 @@ const External = (() => {
       });
     });
 
-    TSB.saveCustoms(tsbCur);
-    Recalls.saveCustoms(recCur);
+    try{ TSB.saveCustoms(tsbCur); Recalls.saveCustoms(recCur); }catch(e){}
     return { tsbAdded, recAdded, faultAdded };
   }
 
-  /* ---------- API publique ---------- */
   async function importRemote(force){
-    const now = Date.now();
-    if (!force && now - read(K_LAST, 0) < 7 * 24 * 3600 * 1000){
-      return { ok:false, reason:"déjà importé il y a moins de 7 j", cached:true };
-    }
-    let src;
-    try{ src = await fetchSource(); }catch(e){ return { ok:false, reason:e.message }; }
-    const parsed = parseSource(src);
-    const hash = (src.length + parsed.BATCH_ISSUES.length + parsed.BATCH_MODELS.length).toString(36);
-    const mod = mergeModels(parsed.BATCH_MODELS);
-    const iss = mergeIssues(parsed.BATCH_ISSUES, parsed.KEY_ISSUES, parsed.BRAND_EXPERT,
-                            parsed.GENERIC_EXPERT, parsed.UNIV, parsed.GENERIC);
-    write(K_PACK, { hash, at:new Date().toISOString(),
-      stats:{ models:mod, tsb:iss.tsbAdded, recalls:iss.recAdded, faults:iss.faultAdded,
-              srcBATCH_ISSUES:(parsed.BATCH_ISSUES||[]).length,
-              srcBATCH_MODELS:(parsed.BATCH_MODELS||[]).length,
-              srcKEY_ISSUES:(parsed.KEY_ISSUES||[]).length } });
-    write(K_VER, hash);
-    write(K_LAST, now);
-    Veille.mergeModels();
-    Store.audit("EXTERNAL_IMPORT", "models+"+mod+" tsb+"+iss.tsbAdded+" rap+"+iss.recAdded);
-    return { ok:true, hash, models:mod, ...iss };
+    try{
+      const now = Date.now();
+      if (!force && now - read(K_LAST, 0) < 7 * 24 * 3600 * 1000){
+        return { ok:false, reason:"déjà importé il y a moins de 7 j", cached:true };
+      }
+      let src;
+      try{ src = await fetchSource(); }catch(e){ return { ok:false, reason:e.message }; }
+      const parsed = parseSource(src);
+      const hash = (src.length + (parsed.BATCH_ISSUES||[]).length + (parsed.BATCH_MODELS||[]).length).toString(36);
+      const mod = mergeModels(parsed.BATCH_MODELS);
+      const iss = mergeIssues(parsed.BATCH_ISSUES, parsed.KEY_ISSUES, parsed.BRAND_EXPERT,
+                              parsed.GENERIC_EXPERT, parsed.UNIV, parsed.GENERIC);
+      write(K_PACK, { hash, at:new Date().toISOString(),
+        stats:{ models:mod, tsb:iss.tsbAdded, recalls:iss.recAdded, faults:iss.faultAdded,
+                srcBATCH_ISSUES:(parsed.BATCH_ISSUES||[]).length,
+                srcBATCH_MODELS:(parsed.BATCH_MODELS||[]).length,
+                srcKEY_ISSUES:(parsed.KEY_ISSUES||[]).length } });
+      write(K_VER, hash);
+      write(K_LAST, now);
+      if (typeof Veille !== "undefined" && Veille.mergeModels) Veille.mergeModels();
+      if (typeof Store !== "undefined" && Store.audit) Store.audit("EXTERNAL_IMPORT", "models+"+mod+" tsb+"+iss.tsbAdded+" rap+"+iss.recAdded);
+      return { ok:true, hash, models:mod, ...iss };
+    }catch(e){ return { ok:false, reason:"importRemote crash : "+e.message }; }
   }
 
-  function status(){ return { pack:read(K_PACK, null), last:read(K_LAST, 0), ver:read(K_VER, null) }; }
-  function reset(){ localStorage.removeItem(K_PACK); localStorage.removeItem(K_VER); localStorage.removeItem(K_LAST); }
+  function status(){ try{ return { pack:read(K_PACK, null), last:read(K_LAST, 0), ver:read(K_VER, null) }; }catch(e){ return { pack:null, last:0, ver:null }; } }
+  function reset(){ try{ localStorage.removeItem(K_PACK); localStorage.removeItem(K_VER); localStorage.removeItem(K_LAST); }catch(e){} }
 
   return { importRemote, status, reset, SRC };
 })();
