@@ -32,7 +32,7 @@ const App = {
           const e = r && r.ext;
           if(isAdmin() && (r.c.count||r.v.count||(e&&e.ok))){
             toast("📥 Import auto : catalogue +"+(r.c.count||0)+" veille +"+(r.v.count||0)+
-              (e&&e.ok?(" • externe +"+(e.models||0)+" modèles +"+(e.tsb||0)+" TSB"):""));
+              (e&&e.ok?(" • externe +"+(e.models||0)+" modèles +"+(e.tsb||0)+" TSB (via "+(e.mode||"?")+")"):""));
           }
         }catch(_){}
       }).catch(()=>{});
@@ -53,15 +53,34 @@ const App = {
     if(role==="admin"){ App.updateBell(); if(App.state.view==="admin") App.adminTab("demandes"); } },
   async updateBell(){ const reqs=await Bus.requests(); const decs=await Bus.decisions(); const done=new Set(decs.map(d=>d.ref));
     const pend=reqs.filter(r=>!done.has(r.ref)).length; const b=$("#bell"); if(b){ const s=b.querySelector(".bb"); if(s) s.textContent=pend||""; } },
-  async relance(){ toast("🔄 Relance mise à jour manuelle…");
-    try{
-      const r=await Veille.relaunch(); Wallpaper.apply();
-      const e=r.ext||{};
-      toast("🔄 Veille +"+(r.a.count||0)+" • Catalogue +"+(r.c.count||0)+
-        (e.ok?(" • Externe +"+(e.models||0)+" modèles +"+(e.tsb||0)+" TSB")
-        :(" • Externe : "+(e.reason||"n/d"))));
-    }catch(e){ toast("⚠️ Relance : "+(e.message||"erreur")); }
-    App.route(); },
+
+  /* === RELANCE AVEC DEMANDE MDP ADMIN POUR IMPORT EXTERNE === */
+  async relance(){
+    const bg=document.createElement("div"); bg.className="modal-bg";
+    bg.innerHTML=`<div class="modal"><h2>🔄 Relance complète — vérification admin</h2>
+      <p class="muted">La relance force l'import de la base externe (expert Kevin). Mot de passe admin requis.</p>
+      <label>Mot de passe admin</label>
+      <input id="rl-pass" type="password" autocomplete="new-password" placeholder="Kevin83600">
+      <div class="row" style="justify-content:flex-end;margin-top:.8rem"><button class="btn sec" data-act="modal-close">Annuler</button><button class="btn" id="rl-go">🔄 Relancer</button></div>
+      <div id="rl-msg"></div></div>`;
+    document.body.appendChild(bg);
+    bg.querySelector("#rl-go").onclick=async()=>{
+      const pass = bg.querySelector("#rl-pass").value;
+      bg.querySelector("#rl-msg").innerHTML='<div class="ok-msg">⏳ Relance en cours…</div>';
+      try{
+        const r = await Veille.relaunch(pass);
+        Wallpaper.apply();
+        const e = r.ext || {};
+        bg.querySelector("#rl-msg").innerHTML = e.ok
+          ? '<div class="ok-msg">✅ Veille +'+(r.a.count||0)+' • Catalogue +'+(r.c.count||0)+' • Externe +'+(e.models||0)+' modèles +'+(e.tsb||0)+' TSB +'+(e.recalls||0)+' rappels (via '+(e.mode||'?')+')</div>'
+          : '<div class="err-msg">⚠️ '+(e.reason||'erreur inconnue')+'</div>';
+        setTimeout(()=>{ bg.remove(); App.route(); }, 1500);
+      }catch(e){
+        bg.querySelector("#rl-msg").innerHTML='<div class="err-msg">❌ '+(e.message||'erreur')+'</div>';
+      }
+    };
+  },
+
   updateNet(){ const on=navigator.onLine; $$("[id^=netbadge]").forEach(el=>{ el.textContent=on?"🌐 connecté":"⛔ hors ligne"; el.className="tag "+(on?"on":"off"); }); },
   async doShare(){ const url=location.origin+location.pathname; try{ if(navigator.share){ await navigator.share({title:CONFIG.APP_NAME,url}); toast("✅ Lien partagé"); } else { await navigator.clipboard.writeText(url); toast("🔗 Lien copié"); } }catch(e){ toast("Partage annulé"); } },
   doShareMail(){ mailto("",CONFIG.APP_NAME+" — application diagnostic","Bonjour,\n\n"+CONFIG.APP_NAME+" : base interne + base externe expert Kevin, "+CONFIG.YEARS[0]+"-"+LASTYEAR+".\nLien : "+location.origin+location.pathname); toast("📧 Mail préparé"); },
@@ -79,7 +98,7 @@ const App = {
     }catch(e){ fatal(e); } },
   renderShell(body){ const role=Session.role();
     const ext = extAvailable() ? External.status() : null;
-    const extTag = ext && ext.pack ? `📥 externe v${(ext.pack.hash||"?").slice(0,6)} • ${ext.pack.stats.tsb} TSB / ${ext.pack.stats.recalls} rappels` : "📥 base externe inactive";
+    const extTag = ext && ext.pack ? `📥 externe v${(ext.pack.hash||"?").slice(0,6)} (${ext.pack.mode||"?"}) • ${ext.pack.stats.tsb} TSB / ${ext.pack.stats.recalls} rappels` : "📥 base externe inactive";
     $("#app").innerHTML=`
     <div class="topbar"><div class="logo">⚙️ ${CONFIG.APP_NAME.replace("Tech","Tech<span>")}</span></div>
       <span class="badge ${role==='admin'?'b-admin':'b-tier'}">${role==='admin'?'ADMIN':'TIERS'}</span>
@@ -115,7 +134,7 @@ const App = {
       <div class="row" style="margin-top:.6rem"><button class="btn sec" id="l-tier" style="flex:1">Accéder</button><button class="btn sec" id="l-req" style="flex:1">🔔 Demander un accès</button></div>
       <div class="err-msg" id="l-err2"></div>
       <div class="row" style="margin-top:1rem;justify-content:center"><span class="tag" id="netbadge"></span>
-        <button class="btn sec small" data-act="relance">🔄 Relance MAJ</button><button class="btn sec small" data-act="pwa">📦 APK</button></div>
+        <button class="btn sec small" data-act="pwa">📦 APK</button></div>
     </div></div>`;
     App.updateNet(); App.startPoll(); clearAutofill();
     $("#l-admin").onclick=async()=>{ const ok=await Auth.loginAdmin($("#l-user").value.trim(),$("#l-pass").value,$("#l-rem").checked); if(ok){ location.hash="#/search"; App.route(); } else $("#l-err").textContent="Mot de passe administrateur incorrect."; };
@@ -221,21 +240,30 @@ const App = {
       const st=External.status();
       const last = st.last ? new Date(st.last).toLocaleString("fr-FR") : "jamais";
       B.innerHTML=`<div class="card"><h3>📥 Base technique externe (expert Kevin)</h3>
-        <p class="muted">Source : <code style="color:var(--acc)">${esc(External.SRC)}</code></p>
-        <p class="muted">Dernier import : <b>${esc(last)}</b> • hash : <b>${esc(st.ver||"aucun")}</b></p>
+        <p class="muted">Source : <code style="color:var(--acc);word-break:break-all">${esc(External.SRC)}</code></p>
+        <p class="muted">Dernier import : <b>${esc(last)}</b> • hash : <b>${esc(st.ver||"aucun")}</b>${st.pack&&st.pack.mode?' • canal : <b>'+esc(st.pack.mode)+'</b>':''}</p>
         ${st.pack?`<div class="grid g4" style="margin-top:.6rem">
           <div class="stat">Modèles<b>+${st.pack.stats.models||0}</b></div>
           <div class="stat">TSB/Campagnes<b>+${st.pack.stats.tsb||0}</b></div>
           <div class="stat">Rappels<b>+${st.pack.stats.recalls||0}</b></div>
-          <div class="stat">Fiches expert<b>+${st.pack.stats.faults||0}</b></div></div>`
+          <div class="stat">Fiches expert<b>+${st.pack.stats.faults||0}</b></div></div>
+        <p class="muted" style="margin-top:.4rem">Sources parsées : BATCH_ISSUES (${st.pack.stats.srcBATCH_ISSUES}) • BATCH_MODELS (${st.pack.stats.srcBATCH_MODELS}) • KEY_ISSUES (${st.pack.stats.srcKEY_ISSUES}) • BRAND_EXPERT • GENERIC_EXPERT • UNIV • GENERIC</p>`
         :'<p class="muted">Aucune base externe importée.</p>'}
-        <div class="row" style="margin-top:.8rem">
+        <div class="row" style="margin-top:.8rem;flex-wrap:wrap">
           <button class="btn" id="ext-import">📥 Importer / mettre à jour</button>
           <button class="btn sec" id="ext-reset">🗑️ Vider l'import</button>
-        </div><div id="ext-msg"></div></div>`;
-      $("#ext-import").onclick=async()=>{ $("#ext-msg").innerHTML='<div class="ok-msg">⏳ Import en cours…</div>';
-        try{ const r=await External.importRemote(true);
-          if(r.ok){ $("#ext-msg").innerHTML='<div class="ok-msg">✅ Importé — modèles +'+r.models+' • TSB +'+r.tsb+' • rappels +'+r.recalls+' • fiches +'+r.faults+'</div>'; Veille.mergeModels(); setTimeout(()=>App.adminTab("external"),1200); }
+        </div>
+        <p class="muted" style="margin-top:.4rem">L'import forcé demande le mot de passe admin (Kevin83600).</p>
+        <div id="ext-msg"></div></div>
+        <div class="card"><h3>Fusion avec base locale</h3>
+        <p class="muted">Les données externes sont <b>fusionnées sans doublons</b> dans : TSB customs, Rappels customs, Fiches perso, Catalogue modèles. Elles survivent hors-ligne après le 1er import.</p></div>`;
+      $("#ext-import").onclick=async()=>{
+        /* Demande mdp admin avant import forcé */
+        const pass = prompt("Mot de passe administrateur pour forcer l'import :");
+        if (!pass) return;
+        $("#ext-msg").innerHTML='<div class="ok-msg">⏳ Import en cours (multi-canal)…</div>';
+        try{ const r=await External.importRemote(true, pass);
+          if(r.ok){ $("#ext-msg").innerHTML='<div class="ok-msg">✅ Importé via '+(r.mode||'?')+' — modèles +'+r.models+' • TSB +'+r.tsb+' • rappels +'+r.recalls+' • fiches +'+r.faults+'</div>'; Veille.mergeModels(); setTimeout(()=>App.adminTab("external"),1500); }
           else { $("#ext-msg").innerHTML='<div class="err-msg">⚠️ '+esc(r.reason)+'</div>'; }
         }catch(e){ $("#ext-msg").innerHTML='<div class="err-msg">❌ '+esc(e.message)+'</div>'; } };
       $("#ext-reset").onclick=()=>{ if(confirm("Vider la base externe importée ?")){ External.reset(); App.adminTab("external"); } };
