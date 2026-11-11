@@ -54,7 +54,6 @@ const App = {
   async updateBell(){ const reqs=await Bus.requests(); const decs=await Bus.decisions(); const done=new Set(decs.map(d=>d.ref));
     const pend=reqs.filter(r=>!done.has(r.ref)).length; const b=$("#bell"); if(b){ const s=b.querySelector(".bb"); if(s) s.textContent=pend||""; } },
 
-  /* === RELANCE AVEC DEMANDE MDP ADMIN POUR IMPORT EXTERNE === */
   async relance(){
     const bg=document.createElement("div"); bg.className="modal-bg";
     bg.innerHTML=`<div class="modal"><h2>🔄 Relance complète — vérification admin</h2>
@@ -258,7 +257,6 @@ const App = {
         <div class="card"><h3>Fusion avec base locale</h3>
         <p class="muted">Les données externes sont <b>fusionnées sans doublons</b> dans : TSB customs, Rappels customs, Fiches perso, Catalogue modèles. Elles survivent hors-ligne après le 1er import.</p></div>`;
       $("#ext-import").onclick=async()=>{
-        /* Demande mdp admin avant import forcé */
         const pass = prompt("Mot de passe administrateur pour forcer l'import :");
         if (!pass) return;
         $("#ext-msg").innerHTML='<div class="ok-msg">⏳ Import en cours (multi-canal)…</div>';
