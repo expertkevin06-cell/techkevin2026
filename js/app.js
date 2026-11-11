@@ -27,7 +27,13 @@ const App = {
       window.addEventListener("online",()=>{ App.updateNet(); App.pollBus(); Veille.autoImport().catch(()=>{}); });
       window.addEventListener("offline",()=>App.updateNet());
       Updater.checkAndApply().then(r=>{ if(r.ok){ toast("✅ MAJ v"+r.version+" appliquée"); Wallpaper.apply(); } }).catch(()=>{});
-      Veille.autoImport().then(r=>{ if((r.c.count||r.v.count)&&isAdmin()) toast("📥 Auto-import : catalogue +"+(r.c.count||0)+" / veille +"+(r.v.count||0)); }).catch(()=>{});
+      Veille.autoImport().then(r=>{
+        if(isAdmin() && (r.c.count||r.v.count||(r.ext&&r.ext.ok))){
+          const s=r.ext||{};
+          toast("📥 Import auto : catalogue +"+(r.c.count||0)+" veille +"+(r.v.count||0)+
+            (s.ok?(" • externe +"+(s.models||0)+" modèles +"+(s.tsb||0)+" TSB +"+(s.recalls||0)+" rappels"):""));
+        }
+      }).catch(()=>{});
       App.route(); App.startPoll();
       const st=await SelfTest.run(); const bad=SelfTest.failures();
       if(bad.length) toast("⚠️ Autocontrôle : "+bad.length+" anomalie(s) — ouvrez 🩺"); else toast("✅ Autocontrôle OK — "+CONFIG.APP_NAME+" vérifiée");
@@ -47,10 +53,14 @@ const App = {
     const pend=reqs.filter(r=>!done.has(r.ref)).length; const b=$("#bell"); if(b){ const s=b.querySelector(".bb"); if(s) s.textContent=pend||""; } },
   async relance(){ toast("🔄 Relance mise à jour manuelle…");
     const r=await Veille.relaunch(); Wallpaper.apply();
-    toast("🔄 Veille +"+(r.a.count||0)+" • Catalogue +"+(r.c.count||0)+" • "+(r.u.ok?("MAJ v"+r.u.version):("MAJ "+(r.u.reason||"n/d")))); App.route(); },
+    const e=r.ext||{};
+    toast("🔄 Veille +"+(r.a.count||0)+" • Catalogue +"+(r.c.count||0)+
+      (e.ok?(" • Base externe +"+(e.models||0)+" modèles +"+(e.tsb||0)+" TSB +"+(e.recalls||0)+" rappels")
+      :(" • Base externe : "+(e.reason||"n/d"))));
+    App.route(); },
   updateNet(){ const on=navigator.onLine; $$("[id^=netbadge]").forEach(el=>{ el.textContent=on?"🌐 connecté":"⛔ hors ligne"; el.className="tag "+(on?"on":"off"); }); },
   async doShare(){ const url=location.origin+location.pathname; try{ if(navigator.share){ await navigator.share({title:CONFIG.APP_NAME,url}); toast("✅ Lien partagé"); } else { await navigator.clipboard.writeText(url); toast("🔗 Lien copié"); } }catch(e){ toast("Partage annulé"); } },
-  doShareMail(){ mailto("",CONFIG.APP_NAME+" — application diagnostic","Bonjour,\n\n"+CONFIG.APP_NAME+" : 21 000 fiches DTC, voyants, symptômes, pannes, rappels "+CONFIG.YEARS[0]+"-"+LASTYEAR+", hors ligne.\nLien : "+location.origin+location.pathname+"\n\nAccès tiers : dans l'appli → « Demander un accès ».\n\nCordialement."); toast("📧 Mail préparé"); },
+  doShareMail(){ mailto("",CONFIG.APP_NAME+" — application diagnostic","Bonjour,\n\n"+CONFIG.APP_NAME+" : base interne + base externe expert Kevin, "+CONFIG.YEARS[0]+"-"+LASTYEAR+", hors ligne.\nLien : "+location.origin+location.pathname+"\n\nCordialement."); toast("📧 Mail préparé"); },
   doPWA(){ window.open("https://www.pwabuilder.com/?url="+encodeURIComponent(location.origin+location.pathname),"_blank"); toast("📦 PWABuilder ouvert"); },
   async doInstall(){ if(App.deferredPrompt){ App.deferredPrompt.prompt(); const r=await App.deferredPrompt.userChoice; toast(r.outcome==="accepted"?"📥 Installation lancée":"Annulé"); App.deferredPrompt=null; } else toast("ℹ️ Menu navigateur → Installer"); },
   route(){ try{
@@ -63,7 +73,8 @@ const App = {
       const V={search:App.renderSearch,codes:App.renderCodes,veh:App.renderVeh,recalls:App.renderRecalls,admin:App.renderAdmin,diag:App.renderDiag};
       App.renderShell((V[view]||App.renderSearch)()); window.scrollTo(0,0);
     }catch(e){ fatal(e); } },
-  renderShell(body){ const role=Session.role();
+  renderShell(body){ const role=Session.role(); const ext=External.status();
+    const extTag = ext.pack ? `📥 externe v${(ext.pack.hash||"?").slice(0,6)} • ${ext.pack.stats.tsb} TSB / ${ext.pack.stats.recalls} rappels` : "📥 base externe non importée";
     $("#app").innerHTML=`
     <div class="topbar"><div class="logo">⚙️ ${CONFIG.APP_NAME.replace("Tech","Tech<span>")}</span></div>
       <span class="badge ${role==='admin'?'b-admin':'b-tier'}">${role==='admin'?'ADMIN':'TIERS'}</span>
@@ -81,12 +92,12 @@ const App = {
       <button type="button" data-act="nav" data-view="recalls" class="${App.state.view==='recalls'||App.state.view==='rappel'?'active':''}">📢 Rappels</button>
       ${isAdmin()?'<button type="button" data-act="nav" data-view="admin" class="'+(App.state.view==='admin'?'active':'')+'">🛠️ Admin</button>':''}
     </nav><main>${body}</main>
-    <div class="footer">${CONFIG.APP_NAME} v${CONFIG.VERSION} — ${CONFIG.YEARS[0]} → ${LASTYEAR} — voyants/symptômes/pannes/rappels FR — base IndexedDB</div>`;
+    <div class="footer">${CONFIG.APP_NAME} v${CONFIG.VERSION} — ${CONFIG.YEARS[0]} → ${LASTYEAR} — ${esc(extTag)} — notifications temps réel — base IndexedDB</div>`;
     App.updateNet(); App.bindView(); if(isAdmin()) App.updateBell(); },
   renderLogin(){ const nu=randName(),np=randName(),nc=randName();
     $("#app").innerHTML=`<div class="login-wrap"><div class="card login-box">
       <div class="logo" style="font-size:1.4rem">⚙️ ${CONFIG.APP_NAME}</div>
-      <p class="muted">21 000 fiches + voyants/symptômes + rappels • ${CONFIG.YEARS[0]}-${LASTYEAR} • hors ligne</p>
+      <p class="muted">Base interne + base externe expert Kevin • ${CONFIG.YEARS[0]}-${LASTYEAR} • hors ligne</p>
       <label style="margin-top:.8rem">Identifiant administrateur</label>
       <input id="l-user" name="${nu}" value="" placeholder="Identifiant" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" data-lpignore="true">
       <label>Mot de passe administrateur</label>
@@ -106,7 +117,7 @@ const App = {
     $("#l-tier").onclick=()=>{ if(Auth.loginTier($("#l-code").value)){ location.hash="#/search"; App.route(); } else $("#l-err2").textContent="Code invalide, refusé ou révoqué."; };
     $("#l-req").onclick=()=>App.openRequest(); },
   openRequest(){ const bg=document.createElement("div"); bg.className="modal-bg";
-    bg.innerHTML=`<div class="modal"><h2>🔔 Demande d'accès tiers</h2><p class="muted">Notification directe à l'administrateur (sans mail/SMS). Réponse en notification temps réel.</p>
+    bg.innerHTML=`<div class="modal"><h2>🔔 Demande d'accès tiers</h2><p class="muted">Notification directe à l'administrateur. Réponse en notification temps réel.</p>
       <label>Nom / société</label><input id="rq-name" autocomplete="off"><label>Appareil / usage</label><input id="rq-contact" autocomplete="off">
       <div class="row" style="justify-content:flex-end;margin-top:.8rem"><button class="btn sec" data-act="modal-close">Annuler</button><button class="btn" id="rq-send">Envoyer</button></div><div id="rq-out"></div></div>`;
     document.body.appendChild(bg);
@@ -123,7 +134,7 @@ const App = {
     return `<div class="card"><h1>🩺 Autocontrôle</h1><div class="row"><button class="btn" data-act="diag-run">Relancer</button><button class="btn sec" data-act="diag-clearsw">Vider cache SW</button><button class="btn sec" data-act="diag-notif">Activer notifications OS</button><button class="btn sec" data-act="pwa">📦 PWABuilder</button></div>
       <table style="margin-top:.8rem"><thead><tr><th>État</th><th>Test</th><th>Détail</th></tr></thead><tbody>${rows||'<tr><td colspan=3>Lancez les tests.</td></tr>'}</tbody></table></div>`; },
   renderSearch(){ return `<div class="card"><h1>Recherche approfondie (voyants, symptômes, pannes, rappels)</h1>
-      <div class="row" style="margin-top:.6rem"><input id="q" placeholder="freinage, voyant batterie 12V, courroie humide, fuite LDR, caméra ADAS, chaîne…" style="flex:1" autocomplete="off"><button class="btn" data-act="search-go">Rechercher</button></div></div>
+      <div class="row" style="margin-top:.6rem"><input id="q" placeholder="freinage, voyant batterie 12V, courroie humide, fuite LDR, EGR, Dacia Spring…" style="flex:1" autocomplete="off"><button class="btn" data-act="search-go">Rechercher</button></div></div>
       <div id="voyant-results"></div><div id="tsb-results"></div><div id="results"></div><div id="recall-results"></div>`; },
   doSearch(){ const q=$("#q").value.trim(); if(!q)return;
     const sheets=Voyants.deepSearch(q,null);
@@ -183,7 +194,7 @@ const App = {
       <div class="card"><h3>🔧 Causes</h3><ul style="padding-left:1.2rem">${(f.causes||[]).map(s=>`<li>${esc(s)}</li>`).join("")}</ul></div></div>
       <div class="card"><h3>✅ Solutions</h3><ol style="padding-left:1.4rem">${(f.solutions||[]).map(s=>`<li>${esc(s)}</li>`).join("")}</ol></div>`; },
   renderAdmin(){ return `<div class="row" style="margin-bottom:1rem"><button class="btn" data-act="relance">🔄 Relance MAJ</button><button class="btn small" id="a-new">➕ Fiche</button><button class="btn sec small" id="a-export">⬇️ Export</button><button class="btn sec small" data-act="pwa">📦 PWABuilder</button><button class="btn sec small" data-act="nav" data-view="diag">🩺</button><div class="spacer"></div>
-    <select id="a-tab" style="max-width:230px"><option value="demandes">🔔 Demandes (cases temps réel)</option><option value="veille">🛰️ Veille 15 j</option><option value="wallpaper">🖼️ Fond d'écran</option><option value="customs">Fiches perso</option><option value="tsb">📚 TSB perso</option><option value="recalls">Rappels perso</option><option value="update">📦 MAJ APK</option><option value="tiers">Codes tiers</option><option value="audit">Audit</option><option value="secu">Sécurité</option></select></div><div id="a-body"></div>`; },
+    <select id="a-tab" style="max-width:230px"><option value="demandes">🔔 Demandes (cases temps réel)</option><option value="veille">🛰️ Veille 15 j</option><option value="external">📥 Base externe expert</option><option value="wallpaper">🖼️ Fond d'écran</option><option value="customs">Fiches perso</option><option value="tsb">📚 TSB perso</option><option value="recalls">Rappels perso</option><option value="update">📦 MAJ APK</option><option value="tiers">Codes tiers</option><option value="audit">Audit</option><option value="secu">Sécurité</option></select></div><div id="a-body"></div>`; },
   async adminTab(t){ const B=$("#a-body");
     if(t==="demandes"){ const reqs=await Bus.requests(); const decs=await Bus.decisions(); const byRef={}; decs.forEach(d=>{byRef[d.ref]=d;});
       B.innerHTML=`<div class="card"><h3>🔔 Demandes d'accès — cases temps réel</h3><p class="muted">Canal ${esc(CONFIG.NTFY_TOPIC)} • poll ${CONFIG.POLL_MS/1000} s • cochez ✅ / ⛔ ; 🚫 pour révoquer.</p>
@@ -199,6 +210,31 @@ const App = {
       B.querySelectorAll("input[data-dg]").forEach(cb=>cb.onchange=()=>{ if(cb.checked){ const code=Auth.grantTier(cb.dataset.dn,cb.dataset.dg); toast("✅ Accordé — "+code); const o=B.querySelector(`input[data-dd="${cb.dataset.dg}"]`); if(o)o.checked=false; setTimeout(()=>App.adminTab("demandes"),400); } });
       B.querySelectorAll("input[data-dd]").forEach(cb=>cb.onchange=()=>{ if(cb.checked){ Auth.denyTier(cb.dataset.dd); toast("⛔ Refus notifié"); const o=B.querySelector(`input[data-dg="${cb.dataset.dd}"]`); if(o)o.checked=false; setTimeout(()=>App.adminTab("demandes"),400); } });
       B.querySelectorAll("input[data-rv]").forEach(cb=>cb.onchange=()=>{ if(cb.checked){ Auth.revokeTier(cb.dataset.rv); toast("🚫 Révoqué"); } else { Auth.toggleTier(cb.dataset.rv); } setTimeout(()=>App.adminTab("demandes"),400); });
+      return; }
+    if(t==="external"){ const st=External.status();
+      const last = st.last ? new Date(st.last).toLocaleString("fr-FR") : "jamais";
+      B.innerHTML=`<div class="card"><h3>📥 Base technique externe (expert Kevin)</h3>
+        <p class="muted">Source : <code style="color:var(--acc)">${esc(External.SRC)}</code></p>
+        <p class="muted">Dernier import : <b>${esc(last)}</b> • hash : <b>${esc(st.ver||"aucun")}</b></p>
+        ${st.pack?`<div class="grid g4" style="margin-top:.6rem">
+          <div class="stat">Modèles<b>+${st.pack.stats.models||0}</b></div>
+          <div class="stat">TSB/Campagnes<b>+${st.pack.stats.tsb||0}</b></div>
+          <div class="stat">Rappels<b>+${st.pack.stats.recalls||0}</b></div>
+          <div class="stat">Fiches expert<b>+${st.pack.stats.faults||0}</b></div></div>
+        <p class="muted" style="margin-top:.4rem">Sources parsées : BATCH_ISSUES (${st.pack.stats.srcBATCH_ISSUES}) • BATCH_MODELS (${st.pack.stats.srcBATCH_MODELS}) • KEY_ISSUES (${st.pack.stats.srcKEY_ISSUES}) • BRAND_EXPERT • GENERIC_EXPERT • UNIV • GENERIC</p>`
+        :'<p class="muted">Aucune base externe importée.</p>'}
+        <div class="row" style="margin-top:.8rem">
+          <button class="btn" id="ext-import">📥 Importer / mettre à jour</button>
+          <button class="btn sec" id="ext-reset">🗑️ Vider l'import</button>
+        </div><div id="ext-msg"></div></div>
+        <div class="card"><h3>Fusion avec base locale</h3>
+        <p class="muted">Les données externes sont <b>fusionnées sans doublons</b> dans : TSB customs, Rappels customs, Fiches perso, Catalogue modèles. Elles survivent hors-ligne après le 1er import. L'import auto se relance tous les 7 j.</p></div>`;
+      $("#ext-import").onclick=async()=>{ $("#ext-msg").innerHTML='<div class="ok-msg">⏳ Import en cours…</div>';
+        try{ const r=await External.importRemote(true);
+          if(r.ok){ $("#ext-msg").innerHTML='<div class="ok-msg">✅ Importé — modèles +'+r.models+' • TSB +'+r.tsb+' • rappels +'+r.recalls+' • fiches +'+r.faults+'</div>'; Veille.mergeModels(); setTimeout(()=>App.adminTab("external"),1200); }
+          else { $("#ext-msg").innerHTML='<div class="err-msg">⚠️ '+esc(r.reason)+'</div>'; }
+        }catch(e){ $("#ext-msg").innerHTML='<div class="err-msg">❌ '+esc(e.message)+'</div>'; } };
+      $("#ext-reset").onclick=()=>{ if(confirm("Vider la base externe importée ?")){ External.reset(); App.adminTab("external"); } };
       return; }
     if(t==="veille"){ const c=Veille.candidates();
       B.innerHTML=`<div class="card"><h3>🛰️ Veille (${Veille.PERIOD_DAYS} j)</h3><p class="muted">En attente : <b>${c.length}</b> • prochaine dans ${Veille.daysLeft()} j • <button class="btn small" data-act="relance">🔄 Relance</button></p></div>
