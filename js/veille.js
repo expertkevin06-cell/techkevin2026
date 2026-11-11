@@ -52,12 +52,23 @@ const Veille = (() => {
     const r=await fetch(url); if(!r.ok) throw new Error("HTTP "+r.status); const j=await r.json();
     return (j.results||[]).map(x=>tradItem({id:"NHTSA-"+(x.NHTSACampaignNumber||Math.random().toString(36).slice(2,8)),type:"recall",brand:make.charAt(0).toUpperCase()+make.slice(1).toLowerCase(),model:model.charAt(0).toUpperCase()+model.slice(1).toLowerCase(),y0:+year,y1:+year,comp:x.Component||"Composant",risk:x.Consequence||"",fix:x.Remedy||"",src:"NHTSA",ref:x.NHTSACampaignNumber||"",date:(x.ReportReceivedDate||"").slice(0,10),dtcs:[],sev:3})); }
   const importNhtsa=list=>mergeCandidates(list);
-  async function autoImport(){ const c=await fetchCatalog(false).catch(()=>({ok:false,count:0}));
-    const v=await check(false).catch(()=>({ok:false,count:0})); mergeModels(); return {c,v}; }
-  async function relaunch(){ const a=await check(true).catch(e=>({ok:false,reason:e.message,count:0}));
-    const c=await fetchCatalog(true).catch(e=>({ok:false,reason:e.message,count:0})); mergeModels();
-    const u=await Updater.checkAndApply().catch(e=>({ok:false,reason:e.message}));
-    Store.audit("RELANCE_MANUELLE","veille+"+(a.count||0)+" catalogue+"+(c.count||0)); return {a,c,u}; }
+  async function autoImport(){
+    const c=await fetchCatalog(false).catch(()=>({ok:false,count:0}));
+    const v=await check(false).catch(()=>({ok:false,count:0}));
+    let ext = { ok:false, count:0 };
+    try{ ext = await External.importRemote(false); }catch(e){ ext = { ok:false, reason:e.message }; }
+    mergeModels();
+    return { c, v, ext };
+  }
+  async function relaunch(){
+    const a=await check(true).catch(e=>({ok:false,reason:e.message,count:0}));
+    const c=await fetchCatalog(true).catch(e=>({ok:false,reason:e.message,count:0}));
+    const e=await External.importRemote(true).catch(err=>({ok:false,reason:err.message}));
+    const u=await Updater.checkAndApply().catch(err=>({ok:false,reason:err.message}));
+    mergeModels();
+    Store.audit("RELANCE_MANUELLE","veille+"+(a.count||0)+" catalogue+"+(c.count||0)+" ext+"+((e.tsb||0)+(e.recalls||0)+(e.faults||0)));
+    return { a, c, ext:e, u };
+  }
   return { PERIOD_DAYS,due,daysLeft,check,fetchCatalog,candidates,approve,modelsExtra,saveModelsExtra,mergeModels,
            nhtsa,importNhtsa,translateFr:TRAD.translateFr,tradItem,autoImport,relaunch };
 })();
