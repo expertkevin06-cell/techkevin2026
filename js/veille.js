@@ -2,8 +2,8 @@
 const Veille = (() => {
   const PERIOD_DAYS=15; const MS=PERIOD_DAYS*24*3600*1000;
   const K_LAST="tk_veille_last_v1",K_VER="tk_veille_ver_v1",K_CAND="tk_veille_cand_v1",K_MODELS="tk_models_extra_v1",K_DONE="tk_veille_done_v1",K_CATVER="tk_catalog_ver_v1";
-  const read=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d;}catch(e){return d;}};
-  const write=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+  const read=(k,d)=>{try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){return d;}};
+  const write=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
   const tradItem=it=>{ if(!it) return it; const c=frObj(it,["comp","prob","risk","fix","sym","title"]); c.trad=true; return c; };
   function due(){ return Date.now()-read(K_LAST,0)>=MS; }
   function daysLeft(){ return Math.max(0,Math.ceil((MS-(Date.now()-read(K_LAST,0)))/86400000)); }
@@ -48,27 +48,36 @@ const Veille = (() => {
     const sel=cur.filter(c=>ids.includes(c.id)); sel.forEach(c=>{ applyItem(tradItem(c)); done.push(c.id); });
     write(K_DONE,done); saveCandidates(cur.filter(c=>!ids.includes(c.id))); mergeModels();
     Store.audit("VEILLE_APPROUVEE",sel.length+" élément(s)"); return sel.length; }
-  async function nhtsa(make,model,year){ const url="https://api.nhtsa.gov/recalls/recallsByVehicle?make="+encodeURIComponent(make)+"&model="+encodeURIComponent(model)+"&modelYear="+year;
-    const r=await fetch(url); if(!r.ok) throw new Error("HTTP "+r.status); const j=await r.json();
-    return (j.results||[]).map(x=>tradItem({id:"NHTSA-"+(x.NHTSACampaignNumber||Math.random().toString(36).slice(2,8)),type:"recall",brand:make.charAt(0).toUpperCase()+make.slice(1).toLowerCase(),model:model.charAt(0).toUpperCase()+model.slice(1).toLowerCase(),y0:+year,y1:+year,comp:x.Component||"Composant",risk:x.Consequence||"",fix:x.Remedy||"",src:"NHTSA",ref:x.NHTSACampaignNumber||"",date:(x.ReportReceivedDate||"").slice(0,10),dtcs:[],sev:3})); }
-  const importNhtsa=list=>mergeCandidates(list);
+
+  /* autoImport : GARDE-FOU EXPLICIT sur External */
   async function autoImport(){
     const c=await fetchCatalog(false).catch(()=>({ok:false,count:0}));
     const v=await check(false).catch(()=>({ok:false,count:0}));
-    let ext = { ok:false, count:0 };
-    try{ ext = await External.importRemote(false); }catch(e){ ext = { ok:false, reason:e.message }; }
+    let ext = { ok:false, reason:"non lancé" };
+    try{
+      if (typeof External !== "undefined" && typeof External.importRemote === "function"){
+        ext = await External.importRemote(false);
+      } else {
+        ext = { ok:false, reason:"module External indisponible" };
+      }
+    }catch(e){ ext = { ok:false, reason:e.message }; }
     mergeModels();
     return { c, v, ext };
   }
   async function relaunch(){
     const a=await check(true).catch(e=>({ok:false,reason:e.message,count:0}));
     const c=await fetchCatalog(true).catch(e=>({ok:false,reason:e.message,count:0}));
-    const e=await External.importRemote(true).catch(err=>({ok:false,reason:err.message}));
-    const u=await Updater.checkAndApply().catch(err=>({ok:false,reason:err.message}));
+    let ext = { ok:false, reason:"non lancé" };
+    try{
+      if (typeof External !== "undefined" && typeof External.importRemote === "function"){
+        ext = await External.importRemote(true);
+      }
+    }catch(e){ ext = { ok:false, reason:e.message }; }
+    const u=await Updater.checkAndApply().catch(e=>({ok:false,reason:e.message}));
     mergeModels();
-    Store.audit("RELANCE_MANUELLE","veille+"+(a.count||0)+" catalogue+"+(c.count||0)+" ext+"+((e.tsb||0)+(e.recalls||0)+(e.faults||0)));
-    return { a, c, ext:e, u };
+    Store.audit("RELANCE_MANUELLE","veille+"+(a.count||0)+" catalogue+"+(c.count||0)+" ext+"+((ext.tsb||0)+(ext.recalls||0)+(ext.faults||0)));
+    return { a, c, ext, u };
   }
   return { PERIOD_DAYS,due,daysLeft,check,fetchCatalog,candidates,approve,modelsExtra,saveModelsExtra,mergeModels,
-           nhtsa,importNhtsa,translateFr:TRAD.translateFr,tradItem,autoImport,relaunch };
+           translateFr:(typeof TRAD!=="undefined"&&TRAD.translateFr)||function(s){return s;},tradItem,autoImport,relaunch };
 })();
