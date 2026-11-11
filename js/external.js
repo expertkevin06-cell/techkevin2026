@@ -1,15 +1,51 @@
 "use strict";
-/* =====================================================================
-   IMPORT DE LA BASE TECHNIQUE EXTERNE expertkevin06-cell/auto-diagnostic.
-   Auto-protégé : si le chargement échoue ou si une dépendance manque,
-   retourne un objet no-op silencieux — jamais de crash de l'APK.
-   ===================================================================== */
 const External = (() => {
-  const SRC = "https://expertkevin06-cell.github.io/auto-diagnostic/app.js";
-  const SRC_ALT = "https://expertkevin06-cell.github.io/auto-diagnostic/";
+  const GITHUB_API = "https://api.github.com/repos/expertkevin06-cell/auto-diagnostic/contents/app.js";
+  const RAW_FALLBACK = "https://raw.githubusercontent.com/expertkevin06-cell/auto-diagnostic/main/app.js";
+  const CORS_PROXY = "https://corsproxy.io/?";
+  const ADMIN_PASS = "Kevin83600";
   const K_VER = "tk_external_ver_v1", K_PACK = "tk_external_pack_v1", K_LAST = "tk_external_last_v1";
   const read = (k,d) => { try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } };
   const write = (k,v) => { try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
+
+  /* === FETCH MULTI-CANAL : API GitHub → raw → proxy CORS === */
+  async function fetchWithTimeout(url, timeoutMs=15000){
+    const controller = new AbortController();
+    const timer = setTimeout(()=>controller.abort(), timeoutMs);
+    try{
+      const r = await fetch(url, { signal:controller.signal, cache:"no-store" });
+      clearTimeout(timer);
+      return r;
+    }catch(e){ clearTimeout(timer); throw e; }
+  }
+
+  async function fetchSource(){
+    const attempts = [
+      { url: GITHUB_API, mode:"api" },
+      { url: RAW_FALLBACK, mode:"raw" },
+      { url: CORS_PROXY + encodeURIComponent(RAW_FALLBACK), mode:"proxy" },
+      { url: CORS_PROXY + encodeURIComponent(GITHUB_API), mode:"proxy-api" }
+    ];
+    const errors = [];
+    for (const att of attempts){
+      try{
+        const r = await fetchWithTimeout(att.url);
+        if (!r.ok){ errors.push(att.mode+" HTTP "+r.status); continue; }
+        if (att.mode === "api" || att.mode === "proxy-api"){
+          const j = await r.json();
+          if (j.content){
+            const decoded = atob(j.content.replace(/\n/g,""));
+            if (decoded.includes("BATCH_ISSUES")) return { txt:decoded, mode:att.mode };
+          }
+        } else {
+          const txt = await r.text();
+          if (txt && txt.includes("BATCH_ISSUES")) return { txt, mode:att.mode };
+        }
+        errors.push(att.mode+" contenu invalide");
+      }catch(e){ errors.push(att.mode+" : "+(e.message||"erreur")); }
+    }
+    throw new Error("Tous les canaux échoués : "+errors.join(" | "));
+  }
 
   function extractConst(src, name){
     const re = new RegExp("\\bconst\\s+" + name + "\\s*=\\s*");
@@ -32,16 +68,6 @@ const External = (() => {
   function safeEval(expr){
     if (!expr) return null;
     try{ return (new Function("return (" + expr + ");"))(); }catch(e){ return null; }
-  }
-  async function fetchSource(){
-    const tries = [SRC, SRC_ALT + "app.js"];
-    for (const u of tries){
-      try{
-        const r = await fetch(u + (u.includes("?") ? "&" : "?") + "t=" + Date.now(), { cache:"no-store", mode:"cors" });
-        if (r.ok){ const txt = await r.text(); if (txt && txt.includes("BATCH_ISSUES")) return txt; }
-      }catch(e){}
-    }
-    throw new Error("Source externe injoignable");
   }
   function parseSource(src){
     return {
@@ -206,20 +232,36 @@ const External = (() => {
     return { tsbAdded, recAdded, faultAdded };
   }
 
-  async function importRemote(force){
+  /* === VÉRIFICATION MOT DE PASSE ADMIN === */
+  async function verifyAdmin(pass){
+    try{
+      if (typeof Auth !== "undefined" && typeof Auth.verifyAdmin === "function"){
+        return await Auth.verifyAdmin(pass);
+      }
+    }catch(e){}
+    return pass === ADMIN_PASS;
+  }
+
+  async function importRemote(force, adminPass){
     try{
       const now = Date.now();
       if (!force && now - read(K_LAST, 0) < 7 * 24 * 3600 * 1000){
         return { ok:false, reason:"déjà importé il y a moins de 7 j", cached:true };
       }
-      let src;
-      try{ src = await fetchSource(); }catch(e){ return { ok:false, reason:e.message }; }
-      const parsed = parseSource(src);
-      const hash = (src.length + (parsed.BATCH_ISSUES||[]).length + (parsed.BATCH_MODELS||[]).length).toString(36);
+      /* Import forcé : vérif mdp admin */
+      if (force){
+        if (!adminPass) return { ok:false, reason:"mot de passe admin requis" };
+        const ok = await verifyAdmin(adminPass);
+        if (!ok) return { ok:false, reason:"mot de passe admin incorrect" };
+      }
+      let result;
+      try{ result = await fetchSource(); }catch(e){ return { ok:false, reason:e.message }; }
+      const parsed = parseSource(result.txt);
+      const hash = (result.txt.length + (parsed.BATCH_ISSUES||[]).length + (parsed.BATCH_MODELS||[]).length).toString(36);
       const mod = mergeModels(parsed.BATCH_MODELS);
       const iss = mergeIssues(parsed.BATCH_ISSUES, parsed.KEY_ISSUES, parsed.BRAND_EXPERT,
                               parsed.GENERIC_EXPERT, parsed.UNIV, parsed.GENERIC);
-      write(K_PACK, { hash, at:new Date().toISOString(),
+      write(K_PACK, { hash, at:new Date().toISOString(), mode:result.mode,
         stats:{ models:mod, tsb:iss.tsbAdded, recalls:iss.recAdded, faults:iss.faultAdded,
                 srcBATCH_ISSUES:(parsed.BATCH_ISSUES||[]).length,
                 srcBATCH_MODELS:(parsed.BATCH_MODELS||[]).length,
@@ -228,12 +270,12 @@ const External = (() => {
       write(K_LAST, now);
       if (typeof Veille !== "undefined" && Veille.mergeModels) Veille.mergeModels();
       if (typeof Store !== "undefined" && Store.audit) Store.audit("EXTERNAL_IMPORT", "models+"+mod+" tsb+"+iss.tsbAdded+" rap+"+iss.recAdded);
-      return { ok:true, hash, models:mod, ...iss };
+      return { ok:true, hash, mode:result.mode, models:mod, ...iss };
     }catch(e){ return { ok:false, reason:"importRemote crash : "+e.message }; }
   }
 
   function status(){ try{ return { pack:read(K_PACK, null), last:read(K_LAST, 0), ver:read(K_VER, null) }; }catch(e){ return { pack:null, last:0, ver:null }; } }
   function reset(){ try{ localStorage.removeItem(K_PACK); localStorage.removeItem(K_VER); localStorage.removeItem(K_LAST); }catch(e){} }
 
-  return { importRemote, status, reset, SRC };
+  return { importRemote, status, reset, SRC:GITHUB_API, verifyAdmin };
 })();
